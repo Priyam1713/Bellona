@@ -433,6 +433,7 @@ pub fn new_agent() -> AgentId {
 
 pub mod colosseum;
 pub mod receipts;
+pub mod skills_cli;
 
 /// War-Room console HTML (single embedded file).
 pub fn warroom_html() -> &'static str {

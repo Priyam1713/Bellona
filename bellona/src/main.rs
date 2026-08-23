@@ -70,6 +70,39 @@ async fn serve(args: &[String]) {
 async fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
+    if args.first().map(|a| a == "skills").unwrap_or(false) {
+        let rest = &args[1..];
+        let root = arg_of(rest, "--dir").map(PathBuf::from).unwrap_or_else(bellona::skills_cli::default_root);
+        let verb = rest.first().map(String::as_str).unwrap_or("list");
+        match verb {
+            "list" => {
+                let all = bellona::skills_cli::scan(&root);
+                if all.is_empty() { println!("no skills installed at {}", root.display()); }
+                for s in all {
+                    println!("{} v{} — {} ({})", s.name, s.version, s.description, s.dir);
+                }
+            }
+            "install" => match rest.iter().position(|a| a == "install").and_then(|i| rest.get(i + 1)) {
+                Some(url) => match bellona::skills_cli::install_from_git(url, &root) {
+                    Ok(list) => {
+                        for s in list { println!("installed: {} v{}", s.name, s.version); }
+                    }
+                    Err(e) => { eprintln!("install failed: {e}"); std::process::exit(1); }
+                },
+                None => { eprintln!("usage: bellona skills install <git-url>"); std::process::exit(2); }
+            },
+            "remove" => match rest.iter().position(|a| a == "remove").and_then(|i| rest.get(i + 1)) {
+                Some(name) => match bellona::skills_cli::remove(&root, name) {
+                    Ok(true) => println!("removed {name}"),
+                    Ok(false) => println!("{name} not found"),
+                    Err(e) => { eprintln!("remove failed: {e}"); std::process::exit(1); }
+                },
+                None => { eprintln!("usage: bellona skills remove <name>"); std::process::exit(2); }
+            },
+            other => { eprintln!("unknown skills verb '{other}' (list|install|remove)"); std::process::exit(2); }
+        }
+        return;
+    }
     if args.first().map(|a| a == "mcp").unwrap_or(false) {
         let cfg = parse_channel_cfg(&args[1..]);
         let assembled = match bellona::assemble(&cfg) {
