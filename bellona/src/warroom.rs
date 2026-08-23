@@ -1,4 +1,4 @@
-//! Campaign VII Ã¢â‚¬â€ the War Room: eyes on every battle, hands on every gate.
+//! Campaign VII ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the War Room: eyes on every battle, hands on every gate.
 //!
 //! `bellona serve` exposes:
 //! - the Praetorian Gate over HTTP (matching @bellona-works/sdk exactly)
@@ -143,6 +143,10 @@ async fn ledger(State(st): State<St>) -> Json<serde_json::Value> {
         "records": st.assembled.gateway.ledger_snapshot(),
         "chain_valid": st.assembled.gateway.verify_ledger(),
     }))
+}
+
+async fn ledger_export(State(st): State<St>) -> Json<serde_json::Value> {
+    Json(st.assembled.gateway.export())
 }
 
 async fn sessions(State(st): State<St>) -> Json<serde_json::Value> {
@@ -313,6 +317,7 @@ pub fn router(war_room: WarRoom) -> Router {
         .route("/v1/gate/pending", get(pending))
         .route("/v1/veto", post(veto))
         .route("/v1/ledger", get(ledger))
+        .route("/v1/ledger/export", get(ledger_export))
         .route("/v1/sessions", get(sessions))
         .route("/v1/events", get(events))
         .route("/v1/runs", post(run_campaign))

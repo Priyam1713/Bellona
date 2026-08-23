@@ -1,8 +1,8 @@
-//! Vexillum — identity of the war camp.
+//! Vexillum â€” identity of the war camp.
 //!
 //! Every agent carries an Ed25519 keypair (its *vexillum*, its standard).
 //! Every effect is signed by the agent and countersigned by its human
-//! owner's attestation key. The model never sees key material — signing
+//! owner's attestation key. The model never sees key material â€” signing
 //! happens at this boundary only (Law V).
 
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
@@ -23,7 +23,7 @@ impl VexillumKeypair {
         }
     }
 
-    /// Hex-encoded public half — the only part events ever carry.
+    /// Hex-encoded public half â€” the only part events ever carry.
     pub fn public_hex(&self) -> String {
         hex::encode(self.signing.verifying_key().to_bytes())
     }
@@ -58,7 +58,7 @@ pub struct IdentityRecord {
 }
 
 impl IdentityRecord {
-    /// Third-party verification — no trust in the deployment required.
+    /// Third-party verification â€” no trust in the deployment required.
     pub fn verify(&self, effect_digest: &[u8]) -> Result<(), ForgeError> {
         let agent_sig: [u8; 64] = hex::decode(&self.agent_sig)
             .ok()
@@ -95,6 +95,13 @@ impl VexillumService {
     /// Set (or rotate) the owner attestation key.
     pub fn set_owner_keypair(&mut self, kp: VexillumKeypair) {
         self.owner = Some(kp);
+    }
+
+    /// Provision an owner key on first use (self-sovereign default).
+    pub fn ensure_owner(&mut self) {
+        if self.owner.is_none() {
+            self.owner = Some(VexillumKeypair::generate());
+        }
     }
 
     /// Mint a fresh standard for an agent.

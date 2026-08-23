@@ -1,6 +1,6 @@
-//! Custos ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the gateway. The ONLY path from decision to effect.
+//! Custos ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â the gateway. The ONLY path from decision to effect.
 //!
-//! Pipeline (Law IV): resolve ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ Lex ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ Annales ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ execute ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ settle.
+//! Pipeline (Law IV): resolve ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ Lex ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ Annales ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ execute ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ settle.
 //! Fail-closed at every stage. Audit rows precede execution. Refusals name
 //! their rule.
 
@@ -11,7 +11,7 @@ use crate::vexillum::VexillumService;
 use forge::event::{BusEvent, EventBus};
 use forge::primitives::{ActionRequest, Decision, Outcome, PolicyAttrs, ResourceInfo};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -23,7 +23,7 @@ pub trait TargetResolver: Send + Sync {
     fn resolve(&self, req: &ActionRequest) -> Result<ResourceInfo, PraetoriumError>;
 }
 
-/// Static snapshot resolver ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the deployment's registry of known resources.
+/// Static snapshot resolver ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â the deployment's registry of known resources.
 #[derive(Default)]
 pub struct SnapshotResolver {
     resources: BTreeMap<String, ResourceInfo>,
@@ -54,7 +54,7 @@ impl TargetResolver for SnapshotResolver {
         if let Some(info) = self.resources.get(&req.target_uri) {
             return Ok(info.clone());
         }
-        // ...then prefix matches for hierarchical schemes (file://workspace/ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦).
+        // ...then prefix matches for hierarchical schemes (file://workspace/ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦).
         for (uri, info) in &self.resources {
             if !uri.is_empty()
                 && req.target_uri.starts_with(uri.as_str())
@@ -106,7 +106,7 @@ pub enum GateOutcome {
     PendingApproval { ticket_id: String },
 }
 
-/// Shared veto state ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â one bit above every layer.
+/// Shared veto state ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â one bit above every layer.
 #[derive(Default)]
 pub struct VetoGuard(AtomicBool);
 
@@ -131,7 +131,7 @@ pub struct CustosGateway<R: TargetResolver, E: EffectExecutor> {
     workspace: PathBuf,
     bus: EventBus,
     veto: Arc<VetoGuard>,
-    identity_enforced: bool,
+    identity_enforced: std::sync::atomic::AtomicBool,
 }
 
 impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
@@ -146,12 +146,13 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
             workspace,
             bus: EventBus::default(),
             veto: Arc::new(VetoGuard::default()),
-            identity_enforced: false,
+            identity_enforced: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
-    pub fn with_identity_enforced(mut self, enforced: bool) -> Self {
-        self.identity_enforced = enforced;
+    pub fn with_identity_enforced(self, enforced: bool) -> Self {
+        self.identity_enforced
+            .store(enforced, std::sync::atomic::Ordering::SeqCst);
         self
     }
 
@@ -165,6 +166,20 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
 
     /// Swap the law. Deployment refuses broken rules upstream (`from_specs`),
     /// so this is infallible by construction.
+    /// Arm or disarm signature enforcement after construction.
+    pub fn set_identity_enforced(&self, on: bool) {
+        self.identity_enforced
+            .store(on, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// Exportable, third-party-verifiable snapshot (Law VII).
+    pub fn export(&self) -> Value {
+        json!({
+            "abi": 1,
+            "records": self.ledger_snapshot(),
+        })
+    }
+
     pub fn install_law(&self, lex: Lex) {
         *self.lex.lock().expect("law poisoned") = lex;
     }
@@ -210,7 +225,7 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
         rec.seq
     }
 
-    /// THE path. Resolve ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ decide ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ audit ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ act ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ settle.
+    /// THE path. Resolve ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ decide ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ audit ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ act ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ settle.
     pub async fn submit(&self, req: ActionRequest) -> Result<GateOutcome, PraetoriumError> {
         if self.veto.is_raised() {
             let err = PraetoriumError::Frozen("veto raised".into());
@@ -224,7 +239,7 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
             action_id: req.id.clone(),
         });
 
-        // 1 ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ RESOLVE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â against the snapshot; unresolvable refuses.
+        // 1 ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ RESOLVE ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â against the snapshot; unresolvable refuses.
         let resolved = match self.resolver.resolve(&req) {
             Ok(r) => r,
             Err(e) => {
@@ -236,14 +251,27 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
             }
         };
 
-        // 2 ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ DECIDE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â deny-before-allow, fail-closed.
+        // 2 ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ DECIDE ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â deny-before-allow, fail-closed.
         let attrs = PolicyAttrs::from_request(&req, Some(&resolved));
         let decision = self.lex.lock().expect("law poisoned").decide(&attrs);
 
-        // 3 ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ AUDIT BEFORE ACTION ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â decision row committed first.
-        let identity = if self.identity_enforced {
-            let svc = self.identity.lock().expect("identity poisoned");
-            let digest = effect_digest(&req);
+        // 3 ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ AUDIT BEFORE ACTION ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â decision row committed first.
+        let identity = if self
+            .identity_enforced
+            .load(std::sync::atomic::Ordering::SeqCst)
+        {
+            let mut svc = self.identity.lock().expect("identity poisoned");
+            // The receipt stores the RESOLVED target; the signature must
+            // commit to exactly what the row publishes.
+            let mut signed_req = req.clone();
+            signed_req.target_uri = resolved.uri.clone();
+            if svc.agent_public(&req.agent_id.to_string()).is_none() {
+                // Deployment-trust model: first-seen agents are enrolled and
+                // their standard published in this very receipt.
+                svc.ensure_owner();
+                svc.enroll_agent(&req.agent_id.to_string());
+            }
+            let digest = effect_digest(&signed_req);
             let rec = svc.attest(&req.agent_id.to_string(), &digest)?;
             Some(rec)
         } else {
@@ -258,6 +286,7 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
                 "tool": req.tool_name,
                 "effect": req.effect,
                 "target": resolved.uri,
+                "request": { "params": req.params, "intent": req.intent },
                 "decision": decision,
                 "identity": identity,
             }),
@@ -351,7 +380,7 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
         Ok(())
     }
 
-    /// The Tribunician VETO ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â freezes every layer. Queued approvals die on
+    /// The Tribunician VETO ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â freezes every layer. Queued approvals die on
     /// the record.
     pub fn veto(&self, reason: &str) {
         self.veto.raise();
@@ -389,7 +418,7 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
     }
 }
 
-/// Canonical digest over an effect request ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â what signatures commit to.
+/// Canonical digest over an effect request ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â what signatures commit to.
 pub fn effect_digest(req: &ActionRequest) -> [u8; 32] {
     let canon = json!({
         "agent": req.agent_id.to_string(),

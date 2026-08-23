@@ -144,6 +144,53 @@ async fn main() {
         let code = bellona::mcp::serve_stdio(std::sync::Arc::new(assembled)).await;
         std::process::exit(code);
     }
+    if args.first().map(|a| a == "verify").unwrap_or(false) {
+        let input = arg_of(&args[1..], "--in")
+            .or_else(|| args.get(1).filter(|a| !a.starts_with("--")).cloned());
+        let Some(path) = input else {
+            eprintln!("usage: bellona verify --in export.json");
+            std::process::exit(2);
+        };
+        let raw = match std::fs::read_to_string(&path) {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("verify: {e}");
+                std::process::exit(2);
+            }
+        };
+        let export: serde_json::Value =
+            match serde_json::from_str(raw.trim_start_matches('\u{feff}')) {
+                Ok(v) => v,
+                Err(e) => {
+                    eprintln!("verify: bad json: {e}");
+                    std::process::exit(2);
+                }
+            };
+        match praetorium::verify_export(&export) {
+            Ok(rep) => {
+                println!(
+                    "chain: {} · records: {} · signed decisions: {} · signature failures: {}",
+                    if rep.chain_valid {
+                        "VALID ✔"
+                    } else {
+                        "TAMPERED ✗"
+                    },
+                    rep.records,
+                    rep.signed_decisions,
+                    rep.signature_failures.len()
+                );
+                for f in &rep.signature_failures {
+                    println!("  ✗ {f}");
+                }
+                std::process::exit(if rep.fully_valid() { 0 } else { 1 });
+            }
+            Err(e) => {
+                eprintln!("verify: {e}");
+                std::process::exit(2);
+            }
+        }
+    }
+
     if args.first().map(|a| a == "telegram").unwrap_or(false) {
         let token =
             arg_of(&args[1..], "--token").or_else(|| std::env::var("TELEGRAM_BOT_TOKEN").ok());

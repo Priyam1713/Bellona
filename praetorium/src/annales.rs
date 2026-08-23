@@ -91,8 +91,13 @@ impl Annales {
 
     /// Recompute the whole chain; returns true iff untampered.
     pub fn verify_chain(&self) -> bool {
+        Self::verify_records(&self.records)
+    }
+
+    /// Stateless verification over any record slice (export format).
+    pub fn verify_records(records: &[LedgerRecord]) -> bool {
         let mut prev = GENESIS.to_string();
-        for (i, r) in self.records.iter().enumerate() {
+        for (i, r) in records.iter().enumerate() {
             if r.seq != i as u64 || r.prev_hash != prev {
                 return false;
             }

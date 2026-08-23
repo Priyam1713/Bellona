@@ -20,6 +20,32 @@ you:  "fix the failing test in reports/"
 
 ---
 
+## The spark nobody else has
+
+Every agent harness can *do things*. Bellona can **prove what it did** — to
+your auditor, your customer, a court.
+
+```sh
+$ bellona verify --in receipts.json
+chain: VALID ✔ · records: 14 · signed decisions: 6 · signature failures: 0
+```
+
+- Every action is **decided by a deterministic CEL policy before it runs**
+  (fail-closed: broken rules refuse).
+- Every action is recorded in a **SHA-256 hash chain** — tamper with one byte
+  and verification screams.
+- Every action carries an **Ed25519 agent signature + human owner
+  countersignature**. The model never holds keys.
+- One command (**Tribunician Veto**) freezes all agent activity — even work
+  already queued.
+- Third parties verify your deployment's behavior with `bellona verify`,
+  needing nothing but the exported JSON. No database access. No trust.
+
+Mapped line-by-line to EU AI Act obligations (Arts. 10–15, 24–26) in
+[`docs/compliance.md`](docs/compliance.md).
+
+---
+
 ## Why people star this
 
 | | Claude Code / Codex | OpenClaw | **Bellona** |
