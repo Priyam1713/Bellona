@@ -88,7 +88,8 @@ impl ModelClient for EchoModel {
 }
 
 fn load_suite(path: &Path) -> Result<vigiles::SuiteFile, String> {
-    let raw = std::fs::read_to_string(path).map(|s| s.trim_start_matches('﻿').to_string())
+    let raw = std::fs::read_to_string(path)
+        .map(|s| s.trim_start_matches('﻿').to_string())
         .map_err(|e| format!("cannot read suite '{:?}': {e}", path))?;
     serde_json::from_str(&raw).map_err(|e| format!("suite not valid JSON: {e}"))
 }
