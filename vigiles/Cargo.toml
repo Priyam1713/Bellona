@@ -1,0 +1,13 @@
+[package]
+name = "vigiles"
+description = "Watchmen of the camp: OTel-style spans, replay, Colosseum eval gates (pass^k)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+forge = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

@@ -1,0 +1,14 @@
+[project]
+name = "bellona-sdk"
+version = "0.1.0"
+description = "Bellona agent harness — Python SDK (typed mirror of the forge primitives and the Praetorian Gate wire protocol)."
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["bellona"]

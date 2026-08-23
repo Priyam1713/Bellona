@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bellona.dev/armamentarium/registry.schema.json",
+  "title": "Armamentarium registry manifest",
+  "type": "object",
+  "required": ["registry_version", "packs"],
+  "properties": {
+    "registry_version": { "type": "string", "const": "0.1" },
+    "packs": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/pack" }
+    }
+  },
+  "definitions": {
+    "semver": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "spdx": { "type": "string", "minLength": 3 },
+    "pack": {
+      "type": "object",
+      "required": ["name", "version", "description", "license"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "version": { "$ref": "#/definitions/semver" },
+        "description": { "type": "string", "minLength": 16, "maxLength": 280 },
+        "triggers": { "type": "array", "items": { "type": "string" } },
+        "author": { "type": "string" },
+        "license": { "$ref": "#/definitions/spdx" },
+        "compat": {
+          "type": "array",
+          "items": {
+            "enum": ["bellona", "hermes", "claude-code", "codex", "opencode", "goose"]
+          }
+        },
+        "signature": {
+          "type": "object",
+          "properties": {
+            "witness": { "type": "string" },
+            "bundle_ref": { "type": "string" }
+          },
+          "required": ["witness"]
+        }
+      }
+    }
+  }
+}
