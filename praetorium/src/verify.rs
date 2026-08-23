@@ -1,9 +1,9 @@
-//! Campaign "Spark" â€” independent verification of a Bellona deployment's
+//! Campaign "Spark" Ã¢â‚¬â€ independent verification of a Bellona deployment's
 //! receipts. A third party needs only this module (or any reimplementation
 //! of two hashes) and the exported JSON: no database, no daemon, no trust.
 //!
 //! Checks:
-//! 1. Hash chain: every record commits to its predecessor, genesis â†’ head.
+//! 1. Hash chain: every record commits to its predecessor, genesis Ã¢â€ â€™ head.
 //! 2. Signatures: every decision row carrying an IdentityRecord must verify
 //!    against the effect it describes (agent sig + owner countersign).
 
@@ -61,7 +61,7 @@ pub fn verify_export(export: &Value) -> Result<VerifyReport, String> {
     .map_err(|e| format!("records decode: {e}"))?;
 
     let mut report = VerifyReport {
-        chain_valid: AnnalesRef::verify(&records),
+        chain_valid: annales_ref::verify(&records),
         records: records.len(),
         signed_decisions: 0,
         signature_failures: Vec::new(),
@@ -76,7 +76,7 @@ pub fn verify_export(export: &Value) -> Result<VerifyReport, String> {
         };
         report.signed_decisions += 1;
 
-        // Rebuild the exact canonical request the signature committed to â€”
+        // Rebuild the exact canonical request the signature committed to Ã¢â‚¬â€
         // from data inside the row itself (self-contained receipts).
         let req = ActionRequest {
             id: forge::ActionId(forge::Id(
@@ -144,7 +144,7 @@ pub fn verify_export(export: &Value) -> Result<VerifyReport, String> {
 }
 
 /// Narrow alias so we don't leak the Annales struct into third-party code.
-mod AnnalesRef {
+mod annales_ref {
     use super::*;
     pub fn verify(records: &[LedgerRecord]) -> bool {
         crate::annales::Annales::verify_records(records)
