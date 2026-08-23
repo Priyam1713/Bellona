@@ -189,6 +189,78 @@ async fn run_campaign(State(st): State<St>, Json(b): Json<RunBody>) -> Json<serd
     Json(json!({ "started": true, "watch": "/v1/events" }))
 }
 
+// ---------- Campaign IX: A2A surface ----------
+
+async fn a2a_card(State(_st): State<St>) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "name": "bellona-centurion",
+        "description": "Delegates campaigns through the Praetorian Gate.",
+        "skills": ["research", "write", "code"],
+        "endpoint": "/a2a/tasks",
+        "protocol_versions": foedus::PROTOCOL_VERSIONS,
+    }))
+}
+
+async fn a2a_tasks(State(st): State<St>, body: String) -> Json<serde_json::Value> {
+    use foedus::a2a::{A2aService, IdempotencyStore, TaskExecutor};
+
+    struct MemStore(std::sync::Mutex<std::collections::HashMap<String, String>>);
+    #[async_trait::async_trait]
+    impl IdempotencyStore for MemStore {
+        async fn claim(&self, key: &str) -> Result<Option<String>, String> {
+            Ok(self.0.lock().unwrap().get(key).cloned())
+        }
+        async fn complete(&self, key: &str, resp: &str) -> Result<(), String> {
+            self.0.lock().unwrap().insert(key.into(), resp.into());
+            Ok(())
+        }
+    }
+
+    struct LoopExecutor {
+        assembled: crate::Assembled,
+        model: Arc<dyn bellum::ModelClient>,
+    }
+    #[async_trait::async_trait]
+    impl TaskExecutor for LoopExecutor {
+        async fn execute(&self, req: &foedus::TaskRequest) -> Result<foedus::TaskResponse, String> {
+            let loop_ = bellum::WarLoop::new(
+                self.assembled.gateway.clone(),
+                self.assembled.registry.clone(),
+                CascadeRouter::new(vec![self.model.clone()]),
+                Aerarium::new(16, 200),
+            )
+            .with_auto_approver("a2a-delegatee");
+            let report = loop_
+                .run(
+                    &req.instruction,
+                    Box::new(ReActStrategy::new(req.instruction.clone(), 16)),
+                    None,
+                )
+                .await
+                .map_err(|e| e.to_string())?;
+            Ok(foedus::TaskResponse::Completed {
+                artifacts: serde_json::json!({ "answer": report.answer }),
+            })
+        }
+    }
+
+    let req: foedus::TaskRequest = match serde_json::from_str(&body) {
+        Ok(r) => r,
+        Err(e) => return Json(json!({ "error": format!("bad task: {e}") })),
+    };
+    let svc = A2aService {
+        store: MemStore(Default::default()),
+        executor: LoopExecutor {
+            assembled: st.assembled.clone(),
+            model: st.model.clone(),
+        },
+    };
+    match svc.handle(req).await {
+        Ok(resp) => Json(serde_json::to_value(resp).unwrap_or_default()),
+        Err(e) => Json(json!({ "error": e.to_string() })),
+    }
+}
+
 async fn index() -> axum::response::Html<&'static str> {
     axum::response::Html(crate::warroom_html())
 }
@@ -208,5 +280,7 @@ pub fn router(war_room: WarRoom) -> Router {
         .route("/v1/sessions", get(sessions))
         .route("/v1/events", get(events))
         .route("/v1/runs", post(run_campaign))
+        .route("/a2a/card", get(a2a_card))
+        .route("/a2a/tasks", post(a2a_tasks))
         .with_state(st)
 }

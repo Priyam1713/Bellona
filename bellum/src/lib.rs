@@ -1,12 +1,14 @@
-//! The War Loop Ã¢â‚¬â€ boring, reliable, and always through the gate.
+//! The War Loop ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â boring, reliable, and always through the gate.
 
 pub mod budget;
+pub mod centurio;
 pub mod model;
 pub mod planexecute;
 pub mod react;
 pub mod strategy;
 
 pub use budget::Aerarium;
+pub use centurio::{FleetReport, Legion, LegionError, WorkerOutcome, WorkerSpec};
 pub use model::{BellumError, CascadeRouter, ModelClient, ModelReply, Phase, ToolCall};
 pub use planexecute::PlanExecuteStrategy;
 pub use react::ReActStrategy;
@@ -72,8 +74,9 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
         agent_id: &AgentId,
         call: &ToolCall,
         intent: &str,
+        worker_role: Option<&str>,
     ) -> Result<Outcome, BellumError> {
-        // Effect classification comes from the tool's own declared spec Ã¢â‚¬â€
+        // Effect classification comes from the tool's own declared spec —
         // never from the model's claim.
         let effect = self
             .registry
@@ -83,6 +86,7 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
         let mut req = ActionRequest::new(agent_id.clone(), call.name.clone(), effect)
             .with_intent(intent.to_string())
             .with_params(call.args.clone());
+        req.worker_role = worker_role.map(String::from);
         // Tools act within the campaign workspace; an unaddressable effect
         // targets its root.
         req.target_uri = {
@@ -97,7 +101,7 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
         match self.gateway.submit(req).await? {
             GateOutcome::Executed { outcome, .. } => Ok(outcome),
             GateOutcome::Denied { rule_id, reason } => {
-                // Denial is an observation, not an exception Ã¢â‚¬â€ the agent
+                // Denial is an observation, not an exception ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the agent
                 // learns and may adapt within policy.
                 Ok(Outcome::Failed {
                     error: format!("DENIED by rule '{rule_id}': {reason}"),
@@ -120,12 +124,24 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
         }
     }
 
-    /// Run one campaign to completion.
+    /// Run one campaign to completion (no fleet role).
     pub async fn run(
+        &self,
+        goal: &str,
+        strategy: Box<dyn Strategy>,
+        phase_model_override: Option<Arc<dyn ModelClient>>,
+    ) -> Result<RunReport, BellumError> {
+        self.run_as(goal, strategy, phase_model_override, None)
+            .await
+    }
+
+    /// Run as a named legion role; effects carry `attr.worker.role`.
+    pub async fn run_as(
         &self,
         goal: &str,
         mut strategy: Box<dyn Strategy>,
         phase_model_override: Option<Arc<dyn ModelClient>>,
+        worker_role: Option<String>,
     ) -> Result<RunReport, BellumError> {
         let agent_id = AgentId::mint();
         self.bus.publish(BusEvent::RunStarted {
@@ -173,7 +189,12 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
                 Step::CallTool(call) => {
                     steps += 1;
                     let outcome = self
-                        .execute_through_gate(&agent_id, &call, "war-loop step")
+                        .execute_through_gate(
+                            &agent_id,
+                            &call,
+                            "war-loop step",
+                            worker_role.as_deref(),
+                        )
                         .await?;
                     observation = Some(match outcome {
                         Outcome::Completed { result } => {

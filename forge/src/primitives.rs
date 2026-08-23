@@ -64,8 +64,11 @@ pub struct ActionRequest {
     pub target_uri: String,
     /// Tool arguments (opaque to the kernel).
     pub params: serde_json::Value,
-    /// The agent's stated intent — a policy attribute, never trusted alone.
+    /// The agent's stated intent Ã¢â‚¬â€ a policy attribute, never trusted alone.
     pub intent: String,
+    /// Legion role when running as part of a fleet (`attr.worker.role`).
+    #[serde(default)]
+    pub worker_role: Option<String>,
 }
 
 impl ActionRequest {
@@ -79,6 +82,7 @@ impl ActionRequest {
             target_uri: String::new(),
             params: serde_json::Value::Null,
             intent: String::new(),
+            worker_role: None,
         }
     }
 
@@ -113,12 +117,20 @@ impl PolicyAttrs {
         self
     }
 
+    fn set_opt(self, key: &str, v: Option<&str>) -> Self {
+        match v {
+            Some(s) => self.set(key, serde_json::json!(s)),
+            None => self,
+        }
+    }
+
     pub fn from_request(req: &ActionRequest, resolved: Option<&ResourceInfo>) -> Self {
         let mut attrs = PolicyAttrs::new()
             .set("tool.name", serde_json::json!(req.tool_name))
             .set("effect.kind", serde_json::json!(req.effect.as_attr()))
             .set("agent.id", serde_json::json!(req.agent_id.to_string()))
             .set("intent", serde_json::json!(req.intent))
+            .set_opt("worker.role", req.worker_role.as_deref())
             .set("target.uri", serde_json::json!(req.target_uri));
         if let Some(r) = resolved {
             attrs = attrs.set("resource.kind", serde_json::json!(r.kind));

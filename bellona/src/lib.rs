@@ -1,4 +1,4 @@
-//! The war machine, as a library ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â so tests can drive real tools through a
+//! The war machine, as a library ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â so tests can drive real tools through a
 //! real gate before `main.rs` ever touches a terminal.
 
 pub mod arsenal;
@@ -283,6 +283,7 @@ impl EffectExecutor for RegistryExecutor {
 
 // ---------- assembly ----------
 
+#[derive(Clone)]
 pub struct Assembled {
     pub gateway: Arc<CustosGateway<SnapshotResolver, RegistryExecutor>>,
     pub registry: Arc<ToolRegistry>,
@@ -437,7 +438,6 @@ pub fn warroom_html() -> &'static str {
 
 /// Test-support models (compiled always, used by tests/examples).
 pub mod tests_support {
-    
 
     pub struct NullModel;
 

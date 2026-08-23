@@ -1,4 +1,4 @@
-﻿//! VI.2 Ã¢â‚¬â€ Slack Socket Mode: envelope ACK + event dedupe logic as pure,
+//! VI.2 Ã¢â‚¬â€ Slack Socket Mode: envelope ACK + event dedupe logic as pure,
 //! unit-tested functions (the wss I/O layer stays thin).
 
 use serde::{Deserialize, Serialize};
@@ -73,4 +73,3 @@ pub fn parse_event(raw: &str) -> Option<SlackMessage> {
         from_bot: event.get("bot_id").is_some(),
     })
 }
-

@@ -1,4 +1,4 @@
-//! SQLite-backed Archivum â€” the durable camp archive (Law III: local-first).
+//! SQLite-backed Archivum Ã¢â‚¬â€ the durable camp archive (Law III: local-first).
 //!
 //! FTS5 when the bundled build provides it; deterministic LIKE-scoring as
 //! the always-correct fallback. Same [`ArchivumStore`] contract either way.
@@ -8,6 +8,13 @@ use async_trait::async_trait;
 use rusqlite::Connection;
 use std::path::Path;
 use std::sync::Mutex;
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
 
 pub struct SqliteArchivum {
     conn: Mutex<Connection>,
@@ -158,7 +165,7 @@ impl ArchivumStore for SqliteArchivum {
             if !out.is_empty() {
                 return Ok(out);
             }
-            // FTS found nothing â€” fall through to scoring for partial hits.
+            // FTS found nothing Ã¢â‚¬â€ fall through to scoring for partial hits.
         }
         self.like_search(query, limit)
     }
@@ -186,5 +193,74 @@ impl ArchivumStore for SqliteArchivum {
             out.push(row.map_err(|e| MemoriaError(e.to_string()))?);
         }
         Ok(out)
+    }
+}
+
+/// Durable idempotency ledger for exactly-once delegation (Campaign IX).
+pub struct IdempotencyLedger {
+    conn: Mutex<Connection>,
+}
+
+impl IdempotencyLedger {
+    pub fn open(path: impl AsRef<Path>) -> Result<Self, MemoriaError> {
+        let conn = Connection::open(path).map_err(|e| MemoriaError(format!("sqlite open: {e}")))?;
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS idempotency (
+                 key TEXT PRIMARY KEY,
+                 response TEXT NOT NULL,
+                 ts_ms INTEGER NOT NULL
+             );",
+        )
+        .map_err(|e| MemoriaError(format!("sqlite schema: {e}")))?;
+        Ok(IdempotencyLedger {
+            conn: Mutex::new(conn),
+        })
+    }
+
+    pub fn in_memory() -> Result<Self, MemoriaError> {
+        Self::open(":memory:")
+    }
+
+    /// Returns cached response if present; otherwise stores and returns None
+    /// meaning "caller must execute".
+    pub fn claim(&self, key: &str) -> Result<Option<String>, MemoriaError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| MemoriaError("ledger lock".into()))?;
+        let existing: Option<String> = conn
+            .query_row(
+                "SELECT response FROM idempotency WHERE key = ?1",
+                [key],
+                |r| r.get(0),
+            )
+            .map(Some)
+            .or_else(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => Ok(None),
+                other => Err(MemoriaError(other.to_string())),
+            })?;
+        if existing.is_some() {
+            return Ok(existing);
+        }
+        // Reserve the slot with an empty marker so a concurrent caller sees it.
+        conn.execute(
+            "INSERT OR IGNORE INTO idempotency (key, response, ts_ms) VALUES (?1, '', ?2)",
+            rusqlite::params![key, now_ms() as i64],
+        )
+        .map_err(|e| MemoriaError(e.to_string()))?;
+        Ok(None)
+    }
+
+    pub fn complete(&self, key: &str, response: &str) -> Result<(), MemoriaError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| MemoriaError("ledger lock".into()))?;
+        conn.execute(
+            "INSERT OR REPLACE INTO idempotency (key, response, ts_ms) VALUES (?1, ?2, ?3)",
+            rusqlite::params![key, response, now_ms() as i64],
+        )
+        .map_err(|e| MemoriaError(e.to_string()))?;
+        Ok(())
     }
 }
