@@ -99,7 +99,9 @@ pub fn pack(v: &[f32]) -> Vec<u8> {
 
 pub fn unpack(bytes: &[u8]) -> Vec<f32> {
     bytes
-        .as_chunks::<4>().0.iter()
+        .as_chunks::<4>()
+        .0
+        .iter()
         .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
         .collect()
 }

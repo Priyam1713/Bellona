@@ -1,4 +1,4 @@
-//! bellona ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the war machine's terminal face.
+//! bellona ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the war machine's terminal face.
 //!
 //! Usage:
 //!   bellona [--workspace DIR] [--base-url URL] [--api-key KEY] --goal "..."
@@ -60,6 +60,23 @@ async fn main() {
         return;
     }
 
+    if args.first().map(|a| a == "receipts").unwrap_or(false) {
+        let mut reports = Vec::new();
+        for (i, a) in args.iter().enumerate() {
+            if a == "--report" {
+                if let Some(path) = args.get(i + 1) {
+                    let raw = std::fs::read_to_string(path).expect("report file");
+                    let rf: bellona::receipts::ReportFile =
+                        serde_json::from_str(&format!("{{\"report\":{raw}}}"))
+                            .expect("report shape");
+                    reports.push(rf);
+                }
+            }
+        }
+        let md = bellona::receipts::render(&reports, env!("CARGO_PKG_VERSION"));
+        println!("{md}");
+        return;
+    }
     if args.first().map(|a| a == "colosseum").unwrap_or(false) {
         let cfg = bellona::BellonaConfig::default();
         let code = bellona::colosseum::cli(&args[1..], &cfg).await;
@@ -68,7 +85,7 @@ async fn main() {
 
     if flag(&args, "--help") || flag(&args, "-h") {
         println!(
-            "bellona ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the war machine\n\
+            "bellona ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the war machine\n\
              \n\
              USAGE:\n  \
                bellona [flags] --goal \"...\"\n\
@@ -132,7 +149,7 @@ async fn main() {
         None => loop_,
     };
 
-    // Surface the event stream on stderr ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â stdout stays for the answer.
+    // Surface the event stream on stderr ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â stdout stays for the answer.
     let mut rx = assembled.gateway.bus().subscribe();
     let ticker = tokio::spawn(async move {
         while let Ok(ev) = rx.recv().await {
@@ -158,7 +175,7 @@ async fn main() {
                 std::process::exit(0);
             } else {
                 eprintln!(
-                    "bellona: halted by breaker ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {}",
+                    "bellona: halted by breaker ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â {}",
                     r.breaker.as_deref().unwrap_or("unknown")
                 );
                 println!("{}", r.answer);

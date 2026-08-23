@@ -1,4 +1,4 @@
-﻿//! Campaign X.2/X.3 Ã¢â‚¬â€ SQLite vector store + hybrid recall.
+//! Campaign X.2/X.3 Ã¢â‚¬â€ SQLite vector store + hybrid recall.
 //!
 //! Vectors live as BLOBs; search is brute-force cosine (honest to ~100k
 //! vectors, upgrade path documented). Recall fuses keyword and vector
@@ -114,8 +114,7 @@ impl SqliteVectors {
 
     pub fn len(&self) -> Result<usize, MemoriaError> {
         let conn = self.conn.lock().map_err(|_| MemoriaError("lock".into()))?;
-        conn
-            .query_row("SELECT COUNT(*) FROM vectors", [], |r| r.get(0))
+        conn.query_row("SELECT COUNT(*) FROM vectors", [], |r| r.get(0))
             .map_err(|e| MemoriaError(e.to_string()))
     }
 }
@@ -181,4 +180,3 @@ impl<A: ArchivumStore, E: Embedder> HybridRecall<A, E> {
         Ok(fused.into_iter().take(limit).map(|(_, e)| e).collect())
     }
 }
-

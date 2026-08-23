@@ -1,0 +1,18 @@
+{
+  "name": "seed-live",
+  "description": "Live-model plumbing proof: same grammar, real provider.",
+  "cases": [
+    {
+      "id": "say-exact",
+      "task": "say exactly: the forge burns",
+      "trials": 2,
+      "verifier": { "verifier": "contains_all", "fragments": ["forge", "burns"] }
+    },
+    {
+      "id": "write-and-confirm",
+      "task": "write reports/live.md :: live run ok",
+      "trials": 1,
+      "verifier": { "verifier": "starts_with", "prefix": "wrote" }
+    }
+  ]
+}

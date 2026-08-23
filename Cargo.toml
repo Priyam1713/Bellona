@@ -11,6 +11,7 @@ members = [
     "vigiles",
     "auxilia",
     "nuntii",
+    "forge_plugins",
     "bellona",
 ]
 
@@ -43,4 +44,5 @@ auxilia = { path = "auxilia" }
 lto = true
 codegen-units = 1
 strip = true
+
 

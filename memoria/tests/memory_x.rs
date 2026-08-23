@@ -2,8 +2,7 @@
 //! vector-only recall fails on exact jargon; fused recall gets both.
 
 use memoria::{
-    cosine, ArchivumStore, Embedder, HashEmbedder, HybridRecall, InMemoryArchivum,
-    SqliteVectors,
+    cosine, ArchivumStore, Embedder, HashEmbedder, HybridRecall, InMemoryArchivum, SqliteVectors,
 };
 
 fn days_ago(days: u64) -> u64 {

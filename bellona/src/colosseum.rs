@@ -1,9 +1,9 @@
-//! Colosseum mode â€” `bellona colosseum --suite FILE [--offline]`.
+//! Colosseum mode Ã¢â‚¬â€ `bellona colosseum --suite FILE [--offline]`.
 //!
 //! Runs each suite case k times through the full war loop (real tools, real
 //! gate) and reports pass^k with honest exit codes. Offline mode uses a
 //! deterministic echo model: it validates harness plumbing, never model
-//! quality â€” receipts about the machine itself (Law VII).
+//! quality Ã¢â‚¬â€ receipts about the machine itself (Law VII).
 
 use bellum::{
     Aerarium, BellumError, CascadeRouter, ModelClient, ModelReply, ReActStrategy, ToolCall, WarLoop,
@@ -14,8 +14,8 @@ use std::sync::{Arc, Mutex};
 use vigiles::{CaseResult, CaseVerdict, Gate, GateVerdict, SuiteReport};
 
 /// Deterministic task interpreter. Task grammar:
-///   `say <text>`                  â†’ answers `<text>`
-///   `write <rel/path> :: <text>`  â†’ writes the file, then answers `wrote`
+///   `say <text>`                  Ã¢â€ â€™ answers `<text>`
+///   `write <rel/path> :: <text>`  Ã¢â€ â€™ writes the file, then answers `wrote`
 #[derive(Default)]
 pub struct EchoModel {
     last_task: Mutex<Option<String>>,
@@ -88,7 +88,7 @@ impl ModelClient for EchoModel {
 }
 
 fn load_suite(path: &Path) -> Result<vigiles::SuiteFile, String> {
-    let raw = std::fs::read_to_string(path)
+    let raw = std::fs::read_to_string(path).map(|s| s.trim_start_matches('﻿').to_string())
         .map_err(|e| format!("cannot read suite '{:?}': {e}", path))?;
     serde_json::from_str(&raw).map_err(|e| format!("suite not valid JSON: {e}"))
 }
@@ -121,7 +121,7 @@ pub async fn run_suite(
     for case in &suite.cases {
         let mut outputs = Vec::with_capacity(case.trials);
         for _ in 0..case.trials {
-            // Fresh strategy per trial â€” no cross-trial memory leakage.
+            // Fresh strategy per trial Ã¢â‚¬â€ no cross-trial memory leakage.
             let report = loop_
                 .run(
                     &case.task,
@@ -191,10 +191,35 @@ pub async fn cli(args: &[String], cfg: &crate::BellonaConfig) -> i32 {
     };
     let suite: vigiles::SuiteFile = suite_json;
 
+    // XIII: live providers. Offline remains the deterministic default.
     let model: Arc<dyn ModelClient> = if args.iter().any(|a| a == "--offline") {
         Arc::new(EchoModel::new())
     } else {
-        crate::model_client(cfg)
+        let provider = arg_of(args, "--provider").unwrap_or_else(|| "openai".into());
+        match provider.as_str() {
+            "anthropic" => Arc::new(auxilia::AnthropicClient::new(
+                std::env::var("ANTHROPIC_API_KEY").unwrap_or_default(),
+                arg_of(args, "--model").unwrap_or_else(|| "claude-sonnet-4-20250514".into()),
+                "sol",
+            )),
+            "openai" | "ollama" => {
+                let base = if provider == "ollama" {
+                    "http://localhost:11434/v1".to_string()
+                } else {
+                    arg_of(args, "--base-url").unwrap_or_else(|| "https://api.openai.com/v1".into())
+                };
+                Arc::new(auxilia::OpenAiCompatClient::new(
+                    base,
+                    std::env::var("OPENAI_API_KEY").ok(),
+                    arg_of(args, "--model").unwrap_or_else(|| "gpt-4o-mini".into()),
+                    "sol",
+                ))
+            }
+            other => {
+                eprintln!("colosseum: unknown provider '{other}' (openai|anthropic|ollama)");
+                return 2;
+            }
+        }
     };
 
     match run_suite(
