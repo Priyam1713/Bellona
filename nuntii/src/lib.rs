@@ -1,8 +1,12 @@
-//! # nuntii — the messengers.
+//! # nuntii â€” the messengers.
 //!
 //! Channel transports that carry Bellona's voice to humans where they
 //! already are. Telegram long-polling first; Discord/Slack follow the same
 //! shape. Transports carry *messages*, never camp credentials.
+
+pub mod discord;
+pub mod slack;
+pub mod transport;
 
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +19,8 @@ pub enum NuntiiError {
 }
 
 pub type Result<T> = std::result::Result<T, NuntiiError>;
+
+pub use transport::ChannelTransport;
 
 /// One inbound message worth an agent's attention.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

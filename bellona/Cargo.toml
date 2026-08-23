@@ -10,6 +10,10 @@ repository.workspace = true
 name = "bellona"
 path = "src/main.rs"
 
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+
 [dependencies]
 forge = { path = "../forge" }
 praetorium = { path = "../praetorium" }
@@ -18,11 +22,17 @@ memoria = { path = "../memoria" }
 auxilia = { path = "../auxilia" }
 castra = { path = "../castra" }
 vigiles = { path = "../vigiles" }
+foedus = { path = "../foedus" }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+axum = { version = "0.7", default-features = false, features = ["http1", "json", "tokio"] }
+futures-util = "0.3"
 async-trait = "0.1"
 regex = "1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+
+
 
 

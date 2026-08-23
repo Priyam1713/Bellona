@@ -1,4 +1,4 @@
-﻿//! Campaign V â€” the expanded arsenal: git operations, document search,
+//! Campaign V â€” the expanded arsenal: git operations, document search,
 //! HTTP-level web reading. Every tool is a SimpleTool (~15 lines each) and
 //! must pass the forge-testkit battery.
 //!
@@ -508,4 +508,3 @@ pub fn web_fetch_tool(http: reqwest::Client) -> Arc<SimpleTool> {
         },
     ))
 }
-

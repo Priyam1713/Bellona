@@ -1,4 +1,4 @@
-//! bellona â€” the war machine's terminal face.
+//! bellona ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the war machine's terminal face.
 //!
 //! Usage:
 //!   bellona [--workspace DIR] [--base-url URL] [--api-key KEY] --goal "..."
@@ -21,9 +21,44 @@ fn flag(args: &[String], key: &str) -> bool {
     args.iter().any(|a| a == key)
 }
 
+async fn serve(args: &[String]) {
+    let bind = args
+        .iter()
+        .position(|a| a == "--bind")
+        .and_then(|i| args.get(i + 1))
+        .cloned()
+        .unwrap_or_else(|| "127.0.0.1:3001".into());
+    let cfg_dir = std::env::current_dir().unwrap_or_default();
+    let wrcfg = bellona::BellonaConfig {
+        workspace: cfg_dir.clone(),
+        ..Default::default()
+    };
+    let assembled = match bellona::assemble(&wrcfg) {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!("bellona serve: {e}");
+            std::process::exit(2);
+        }
+    };
+    let model = bellona::model_client(&wrcfg);
+    let app = bellona::warroom::router(bellona::warroom::WarRoom {
+        assembled,
+        cfg: wrcfg,
+        model,
+    });
+    eprintln!("bellona: war room open at http://{bind}");
+    let listener = tokio::net::TcpListener::bind(&bind).await.expect("bind");
+    axum::serve(listener, app).await.expect("serve");
+}
+
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
+
+    if args.first().map(|a| a == "serve").unwrap_or(false) {
+        serve(&args[1..]).await;
+        return;
+    }
 
     if args.first().map(|a| a == "colosseum").unwrap_or(false) {
         let cfg = bellona::BellonaConfig::default();
@@ -33,7 +68,7 @@ async fn main() {
 
     if flag(&args, "--help") || flag(&args, "-h") {
         println!(
-            "bellona â€” the war machine\n\
+            "bellona ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the war machine\n\
              \n\
              USAGE:\n  \
                bellona [flags] --goal \"...\"\n\
@@ -97,7 +132,7 @@ async fn main() {
         None => loop_,
     };
 
-    // Surface the event stream on stderr â€” stdout stays for the answer.
+    // Surface the event stream on stderr ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â stdout stays for the answer.
     let mut rx = assembled.gateway.bus().subscribe();
     let ticker = tokio::spawn(async move {
         while let Ok(ev) = rx.recv().await {
@@ -123,7 +158,7 @@ async fn main() {
                 std::process::exit(0);
             } else {
                 eprintln!(
-                    "bellona: halted by breaker â€” {}",
+                    "bellona: halted by breaker ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {}",
                     r.breaker.as_deref().unwrap_or("unknown")
                 );
                 println!("{}", r.answer);

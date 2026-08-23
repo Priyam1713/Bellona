@@ -1,7 +1,9 @@
-//! The war machine, as a library Ã¢â‚¬â€ so tests can drive real tools through a
+//! The war machine, as a library ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â so tests can drive real tools through a
 //! real gate before `main.rs` ever touches a terminal.
 
 pub mod arsenal;
+pub mod warroom;
+pub mod warroom_html;
 
 use auxilia::OpenAiCompatClient;
 use castra::{CampCommand, EnvScrubPolicy, ProcessDriver, SandboxDriver};
@@ -427,3 +429,30 @@ pub fn new_agent() -> AgentId {
 }
 
 pub mod colosseum;
+
+/// War-Room console HTML (single embedded file).
+pub fn warroom_html() -> &'static str {
+    crate::warroom_html::HTML
+}
+
+/// Test-support models (compiled always, used by tests/examples).
+pub mod tests_support {
+    
+
+    pub struct NullModel;
+
+    #[async_trait::async_trait]
+    impl bellum::ModelClient for NullModel {
+        fn tier(&self) -> &'static str {
+            "luna"
+        }
+        async fn complete(&self, _p: &str) -> Result<bellum::ModelReply, bellum::BellumError> {
+            Ok(bellum::ModelReply {
+                thought: String::new(),
+                tool_calls: vec![],
+                final_answer: Some("null model".into()),
+                cost_cents: 0,
+            })
+        }
+    }
+}

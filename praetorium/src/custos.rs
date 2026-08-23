@@ -1,6 +1,6 @@
-//! Custos Ã¢â‚¬â€ the gateway. The ONLY path from decision to effect.
+//! Custos ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the gateway. The ONLY path from decision to effect.
 //!
-//! Pipeline (Law IV): resolve Ã¢â€“Â¸ Lex Ã¢â€“Â¸ Annales Ã¢â€“Â¸ execute Ã¢â€“Â¸ settle.
+//! Pipeline (Law IV): resolve ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ Lex ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ Annales ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ execute ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ settle.
 //! Fail-closed at every stage. Audit rows precede execution. Refusals name
 //! their rule.
 
@@ -23,7 +23,7 @@ pub trait TargetResolver: Send + Sync {
     fn resolve(&self, req: &ActionRequest) -> Result<ResourceInfo, PraetoriumError>;
 }
 
-/// Static snapshot resolver Ã¢â‚¬â€ the deployment's registry of known resources.
+/// Static snapshot resolver ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the deployment's registry of known resources.
 #[derive(Default)]
 pub struct SnapshotResolver {
     resources: BTreeMap<String, ResourceInfo>,
@@ -54,7 +54,7 @@ impl TargetResolver for SnapshotResolver {
         if let Some(info) = self.resources.get(&req.target_uri) {
             return Ok(info.clone());
         }
-        // ...then prefix matches for hierarchical schemes (file://workspace/Ã¢â‚¬Â¦).
+        // ...then prefix matches for hierarchical schemes (file://workspace/ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦).
         for (uri, info) in &self.resources {
             if !uri.is_empty()
                 && req.target_uri.starts_with(uri.as_str())
@@ -106,7 +106,7 @@ pub enum GateOutcome {
     PendingApproval { ticket_id: String },
 }
 
-/// Shared veto state Ã¢â‚¬â€ one bit above every layer.
+/// Shared veto state ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â one bit above every layer.
 #[derive(Default)]
 pub struct VetoGuard(AtomicBool);
 
@@ -173,6 +173,16 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
         &self.identity
     }
 
+    /// Snapshot of parked approval tickets (id -> action summary).
+    pub fn pending_tickets(&self) -> Vec<(String, String, String)> {
+        self.tickets
+            .lock()
+            .expect("tickets poisoned")
+            .iter()
+            .map(|(id, req)| (id.clone(), req.tool_name.clone(), req.intent.clone()))
+            .collect()
+    }
+
     /// Exportable ledger snapshot for verification.
     pub fn ledger_snapshot(&self) -> Vec<crate::annales::LedgerRecord> {
         self.annales
@@ -200,7 +210,7 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
         rec.seq
     }
 
-    /// THE path. Resolve Ã¢â€“Â¸ decide Ã¢â€“Â¸ audit Ã¢â€“Â¸ act Ã¢â€“Â¸ settle.
+    /// THE path. Resolve ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ decide ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ audit ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ act ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ settle.
     pub async fn submit(&self, req: ActionRequest) -> Result<GateOutcome, PraetoriumError> {
         if self.veto.is_raised() {
             let err = PraetoriumError::Frozen("veto raised".into());
@@ -214,7 +224,7 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
             action_id: req.id.clone(),
         });
 
-        // 1 Ã¢â€“Â¸ RESOLVE Ã¢â‚¬â€ against the snapshot; unresolvable refuses.
+        // 1 ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ RESOLVE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â against the snapshot; unresolvable refuses.
         let resolved = match self.resolver.resolve(&req) {
             Ok(r) => r,
             Err(e) => {
@@ -226,11 +236,11 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
             }
         };
 
-        // 2 Ã¢â€“Â¸ DECIDE Ã¢â‚¬â€ deny-before-allow, fail-closed.
+        // 2 ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ DECIDE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â deny-before-allow, fail-closed.
         let attrs = PolicyAttrs::from_request(&req, Some(&resolved));
         let decision = self.lex.lock().expect("law poisoned").decide(&attrs);
 
-        // 3 Ã¢â€“Â¸ AUDIT BEFORE ACTION Ã¢â‚¬â€ decision row committed first.
+        // 3 ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸ AUDIT BEFORE ACTION ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â decision row committed first.
         let identity = if self.identity_enforced {
             let svc = self.identity.lock().expect("identity poisoned");
             let digest = effect_digest(&req);
@@ -341,7 +351,7 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
         Ok(())
     }
 
-    /// The Tribunician VETO Ã¢â‚¬â€ freezes every layer. Queued approvals die on
+    /// The Tribunician VETO ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â freezes every layer. Queued approvals die on
     /// the record.
     pub fn veto(&self, reason: &str) {
         self.veto.raise();
@@ -379,7 +389,7 @@ impl<R: TargetResolver, E: EffectExecutor> CustosGateway<R, E> {
     }
 }
 
-/// Canonical digest over an effect request Ã¢â‚¬â€ what signatures commit to.
+/// Canonical digest over an effect request ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â what signatures commit to.
 pub fn effect_digest(req: &ActionRequest) -> [u8; 32] {
     let canon = json!({
         "agent": req.agent_id.to_string(),
