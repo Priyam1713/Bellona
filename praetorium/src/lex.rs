@@ -1,4 +1,4 @@
-//! Lex — the law of the camp.
+//! Lex â€” the law of the camp.
 //!
 //! CEL rules evaluated over a nested attribute map rooted at `attr`:
 //!
@@ -24,7 +24,7 @@ pub enum RuleEffect {
     RequireApproval,
 }
 
-/// Source form of a rule — what deployments author.
+/// Source form of a rule â€” what deployments author.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleSpec {
     pub id: String,
@@ -60,7 +60,7 @@ impl Lex {
     }
 
     /// Compile a rule set. Compilation failure aborts deployment rather
-    /// than silently weakening it — half-configured policies refuse to start.
+    /// than silently weakening it â€” half-configured policies refuse to start.
     pub fn from_specs(specs: &[RuleSpec]) -> Result<Self, String> {
         let mut lex = Lex::empty();
         for s in specs {
@@ -93,9 +93,11 @@ impl Lex {
     /// Any evaluation error yields `Deny { rule_id: RULE_BROKEN }`.
     /// No match yields `Deny { rule_id: RULE_DEFAULT_DENY }`.
     pub fn decide(&self, attrs: &PolicyAttrs) -> Decision {
+        // Hot path: nest the attribute map ONCE per decision, not per rule.
+        let root = nested_json(attrs);
         for class in [&self.denies, &self.approvals, &self.allows] {
             for rule in class {
-                match self.eval(rule, attrs) {
+                match self.eval(rule, &root) {
                     Ok(true) => {
                         return match rule.effect {
                             RuleEffect::Deny => Decision::Deny {
@@ -122,21 +124,20 @@ impl Lex {
         }
         Decision::Deny {
             rule_id: RULE_DEFAULT_DENY.to_string(),
-            reason: "no rule matched — default deny".to_string(),
+            reason: "no rule matched â€” default deny".to_string(),
         }
     }
 
-    fn eval(&self, rule: &Rule, attrs: &PolicyAttrs) -> Result<bool, String> {
+    fn eval(&self, rule: &Rule, root: &serde_json::Value) -> Result<bool, String> {
         let mut ctx = cel_interpreter::Context::default();
-        ctx.add_variable("attr", nested_json(attrs))
-            .map_err(|e| e.to_string())?;
+        ctx.add_variable("attr", root).map_err(|e| e.to_string())?;
         let value = rule.program.execute(&ctx).map_err(|e| e.to_string())?;
         cel_truthy(&value).ok_or_else(|| format!("non-boolean result from '{}'", rule.id))
     }
 }
 
 /// Convert dotted attribute keys (`tool.name`) into nested JSON maps
-/// (`attr.tool.name`) — CEL resolves attribute chains through them.
+/// (`attr.tool.name`) â€” CEL resolves attribute chains through them.
 fn nested_json(attrs: &PolicyAttrs) -> serde_json::Value {
     fn insert(
         map: &mut serde_json::Map<String, serde_json::Value>,

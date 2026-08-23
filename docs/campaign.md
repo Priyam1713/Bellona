@@ -24,11 +24,25 @@ Eight crates, doctrine docs, 27 tests. See CHANGELOG 0.1.0.
   harness-plumbing gates that never touch a provider.
 - Release-binary smoke test: seed suite pass^k = 1.0, exit 0.
 
-## Milestone IV — Forge Extension (candidates)
-- Wasmtime capability-scoped plugin host behind `forge::PLUGIN_API_VERSION`
-- SessionStore SQLite backend + FTS5 session search
-- Discord/Slack nuntii transports; AG-UI web surface
-- Live-provider smoke suite behind `BELLONA_LIVE_TESTS=1`
+## Milestone IV — Optimization & Completion ✅
+- **Aerarium is real**: strategy-accrued model cost now reaches the loop;
+  ceilings are hard — an over-budget Finish trips the breaker and the
+  answer is preserved only as evidence.
+- **Durable sessions**: SqliteSessionStore (WAL, reopen persistence,
+  full-fidelity JSON blobs) behind the existing SessionStore trait.
+- **Hot path**: Lex nests the attribute map once per decision instead of
+  once per rule.
+- Veto propagation verified at the bus (surface layers can react).
+- Release profile: LTO + codegen-units=1; release smoke: colosseum seed
+  pass^k 1.0, exit 0.
+
+## Deferred (with rationale)
+- **Wasmtime plugin host**: capability-scoped WASM remains the Law-II
+  target (`forge::PLUGIN_API_VERSION=1` frozen); deferred because the
+  component-model toolchain weight belongs in a dedicated campaign with its
+  own supply-chain review. In-process native plugins remain first-party-only.
+- Discord/Slack transports, AG-UI web surface, live-provider smoke suite
+  (`BELLONA_LIVE_TESTS=1`).
 
 
 ## Engagements

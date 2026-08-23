@@ -1,4 +1,4 @@
-//! The War Loop — boring, reliable, and always through the gate.
+﻿//! The War Loop Ã¢â‚¬â€ boring, reliable, and always through the gate.
 
 pub mod budget;
 pub mod model;
@@ -73,7 +73,7 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
         call: &ToolCall,
         intent: &str,
     ) -> Result<Outcome, BellumError> {
-        // Effect classification comes from the tool's own declared spec —
+        // Effect classification comes from the tool's own declared spec Ã¢â‚¬â€
         // never from the model's claim.
         let effect = self
             .registry
@@ -97,7 +97,7 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
         match self.gateway.submit(req).await? {
             GateOutcome::Executed { outcome, .. } => Ok(outcome),
             GateOutcome::Denied { rule_id, reason } => {
-                // Denial is an observation, not an exception — the agent
+                // Denial is an observation, not an exception Ã¢â‚¬â€ the agent
                 // learns and may adapt within policy.
                 Ok(Outcome::Failed {
                     error: format!("DENIED by rule '{rule_id}': {reason}"),
@@ -135,7 +135,7 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
         strategy.begin(goal).await?;
 
         let mut observation: Option<String> = None;
-        let cost = 0u64;
+        let mut cost;
         let mut steps = 0usize;
         let mut answer = String::new();
         let mut breaker: Option<String> = None;
@@ -146,10 +146,26 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
                 .or_else(|| self.router.route(Phase::Execute))
                 .ok_or_else(|| BellumError::Model("no model enrolled".into()))?;
 
-            match strategy
+            let step = strategy
                 .next_step(observation.as_deref(), client.as_ref())
-                .await?
-            {
+                .await?;
+
+            // Ceilings are HARD: accrue and check before honoring any step,
+            // including a Finish. An over-budget answer is evidence, not a
+            // success.
+            cost = strategy.accrued_cost_cents();
+            if cost >= self.aerarium.max_cost_cents {
+                if let Step::Finish(a) = step {
+                    answer = a;
+                }
+                breaker = Some(format!(
+                    "aerarium max_cost={} cents reached",
+                    self.aerarium.max_cost_cents
+                ));
+                break;
+            }
+
+            match step {
                 Step::Think(t) => {
                     steps += 1;
                     observation = Some(t);
@@ -211,3 +227,4 @@ fn target_uri_from_args(args: &serde_json::Value) -> String {
     }
     String::new()
 }
+

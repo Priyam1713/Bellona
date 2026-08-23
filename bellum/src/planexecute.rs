@@ -1,4 +1,4 @@
-﻿//! Plan-and-Execute with the two documented guards:
+//! Plan-and-Execute with the two documented guards:
 //! - **plan validation** before execution (planner hallucination guard),
 //! - **replan trigger** on observation mismatch (stale-plan guard), once.
 
@@ -23,6 +23,7 @@ pub struct PlanExecuteStrategy {
     replanned: bool,
     finished: bool,
     max_plan_len: usize,
+    cost_cents: u64,
 }
 
 impl PlanExecuteStrategy {
@@ -42,6 +43,7 @@ impl PlanExecuteStrategy {
             replanned: false,
             finished: false,
             max_plan_len: 25,
+            cost_cents: 0,
         }
     }
 
@@ -99,6 +101,7 @@ impl crate::strategy::Strategy for PlanExecuteStrategy {
             self.allowed_tools.iter().collect::<Vec<_>>()
         );
         let reply = planner.complete(&prompt).await?;
+        self.cost_cents += reply.cost_cents;
         self.plan = self.parse_plan(&reply.thought)?;
         Ok(())
     }
@@ -136,6 +139,7 @@ impl crate::strategy::Strategy for PlanExecuteStrategy {
             prompt.push_str(obs);
         }
         let reply = executor.complete(&prompt).await?;
+        self.cost_cents += reply.cost_cents;
         Ok(match reply.final_answer {
             Some(a) => Step::Finish(a),
             None => Step::Finish(reply.thought),
@@ -144,5 +148,9 @@ impl crate::strategy::Strategy for PlanExecuteStrategy {
 
     fn name(&self) -> &'static str {
         "plan_execute"
+    }
+
+    fn accrued_cost_cents(&self) -> u64 {
+        self.cost_cents
     }
 }

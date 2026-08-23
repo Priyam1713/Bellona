@@ -40,13 +40,16 @@ are a near-tie; the harness decides who wins the war.
 | `forge`      | The Forge       | Kernel primitives, events, traits                 |
 | `praetorium` | Praetorian Gate | Custos gateway, Lex policy, Annales ledger, Vexillum identity |
 | `bellum`     | The War Loop    | Agent loop + strategy plugins (react, plan-execute) |
-| `memoria`    | Memoria         | Tiered memory: nervi/tabella/archivum + somnium consolidation |
+| `memoria`    | Memoria         | Tiered memory: nervi/tabella/archivum + somnium consolidation; SQLite archivum + durable sessions |
 | `castra`     | Castra          | Sandbox ladder: process → container → gVisor → cloud |
 | `officina`   | Officina/Ludus  | Self-forged tools + proving grounds               |
 | `foedus`     | Foedus          | Protocol federation: MCP / A2A / AG-UI / ACP      |
 | `vigiles`    | Vigiles         | Tracing, replay, Colosseum eval runner (pass^k)   |
+| `auxilia`    | Auxilia         | Allied model clients: OpenAI-compatible / Anthropic / Ollama |
+| `nuntii`     | Nuntii          | Channel transports: Telegram long-poll first      |
+| `bellona`    | The Machine     | Terminal CLI: campaigns + colosseum gates         |
 
-Surfaces (TUI/web/desktop/channels) live outside the workspace core by design:
+Surfaces beyond the terminal land outside the workspace core by design:
 the war machine must run headless first.
 
 ## Invariants reviewers must enforce

@@ -32,4 +32,11 @@ pub trait Strategy: Send + Sync {
 
     /// Human-readable strategy name for audit rows.
     fn name(&self) -> &'static str;
+
+    /// Total model spend accrued inside this strategy so far. The loop
+    /// enforces the Aerarium against this (denial-of-wallet is a failure
+    /// class).
+    fn accrued_cost_cents(&self) -> u64 {
+        0
+    }
 }

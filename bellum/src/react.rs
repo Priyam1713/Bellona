@@ -1,5 +1,5 @@
 //! ReAct with the failure-mode catalog encoded as breakers:
-//! max-steps cap, no-progress detector (identical action ≥ 3 times).
+//! max-steps cap, no-progress detector (identical action â‰¥ 3 times).
 
 use crate::model::{ModelClient, ToolCall};
 use crate::strategy::{Step, Strategy};
@@ -11,6 +11,7 @@ pub struct ReActStrategy {
     max_steps: usize,
     steps_used: usize,
     recent_action_sigs: VecDeque<String>,
+    cost_cents: u64,
     finished: bool,
 }
 
@@ -23,6 +24,7 @@ impl ReActStrategy {
             max_steps,
             steps_used: 0,
             recent_action_sigs: VecDeque::new(),
+            cost_cents: 0,
             finished: false,
         }
     }
@@ -94,9 +96,7 @@ impl Strategy for ReActStrategy {
 
         let reply = model.complete(&prompt).await?;
 
-        // Budget note: the loop owns Aerarium enforcement; strategies only
-        // count steps. Record and continue.
-        let _ = reply.cost_cents;
+        self.cost_cents += reply.cost_cents;
 
         if let Some(ans) = reply.final_answer {
             self.finished = true;
@@ -122,5 +122,9 @@ impl Strategy for ReActStrategy {
 
     fn name(&self) -> &'static str {
         "react"
+    }
+
+    fn accrued_cost_cents(&self) -> u64 {
+        self.cost_cents
     }
 }
