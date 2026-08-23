@@ -79,7 +79,12 @@ fn walk(root: &Path, dir: &Path, out: &mut Vec<SkillEntry>, depth: usize) {
                         .and_then(|d| d.strip_prefix(root).ok())
                         .map(|d| d.to_string_lossy().replace('\\', "/"))
                         .unwrap_or_default();
-                    out.push(SkillEntry { name, version, description, dir: rel });
+                    out.push(SkillEntry {
+                        name,
+                        version,
+                        description,
+                        dir: rel,
+                    });
                 }
             }
         }
@@ -98,10 +103,7 @@ pub fn install_from_git(url: &str, root: &Path) -> Result<Vec<SkillEntry>, Strin
         .output()
         .map_err(|e| format!("git spawn: {e}"))?;
     if !out.status.success() {
-        let msg = format!(
-            "clone failed: {}",
-            String::from_utf8_lossy(&out.stderr)
-        );
+        let msg = format!("clone failed: {}", String::from_utf8_lossy(&out.stderr));
         let _ = std::fs::remove_dir_all(&tmp);
         return Err(msg.trim().to_string());
     }

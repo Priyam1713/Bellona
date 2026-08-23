@@ -4,7 +4,12 @@
 use axum::body::Body;
 use bellona::{assemble, BellonaConfig};
 use http_body_util::BodyExt;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+static UNIQ_SEQ: AtomicU64 = AtomicU64::new(1);
+fn uniq() -> u64 {
+    UNIQ_SEQ.fetch_add(1, Ordering::Relaxed)
+}
 use tower::ServiceExt;
 
 fn app(yolo: bool) -> axum::Router {
@@ -14,7 +19,9 @@ fn app(yolo: bool) -> axum::Router {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .subsec_nanos()
+            .subsec_nanos() as u64
+            * 1_000_000
+            + uniq()
     ));
     std::fs::create_dir_all(&dir).unwrap();
     let cfg = BellonaConfig {
@@ -81,10 +88,7 @@ async fn mcp_tools_call_reads_through_the_gate() {
         workspace: dir,
         ..Default::default()
     };
-    let arc = Arc::new({
-        
-        assemble(&cfg).unwrap()
-    });
+    let arc = Arc::new(assemble(&cfg).unwrap());
 
     let call = serde_json::json!({
         "jsonrpc":"2.0","id":7,"method":"tools/call",

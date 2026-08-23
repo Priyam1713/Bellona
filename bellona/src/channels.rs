@@ -1,4 +1,4 @@
-﻿//! Campaign XIV-1 Ã¢â‚¬â€ the daemons: your agent where you already are.
+//! Campaign XIV-1 Ã¢â‚¬â€ the daemons: your agent where you already are.
 //!
 //! `bellona telegram` / `bellona discord` run long-lived loops binding a
 //! ChannelTransport to the full war machine (gate, law, audit included).
@@ -262,4 +262,3 @@ pub async fn run_discord(cfg: BellonaConfig, token: String) -> i32 {
         }
     }
 }
-

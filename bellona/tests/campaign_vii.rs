@@ -1,10 +1,15 @@
-﻿//! Campaign VII: the War Room speaks the same law over HTTP.
+//! Campaign VII: the War Room speaks the same law over HTTP.
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use bellona::{assemble, BellonaConfig};
 use http_body_util::BodyExt;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
+static UNIQ_SEQ: AtomicU64 = AtomicU64::new(1);
+fn uniq() -> u64 {
+    UNIQ_SEQ.fetch_add(1, Ordering::Relaxed)
+}
 use std::sync::Arc;
 use tower::ServiceExt;
 
@@ -15,7 +20,9 @@ fn temp_ws(tag: &str) -> (PathBuf, TempGuard) {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .subsec_nanos()
+            .subsec_nanos() as u64
+            * 1_000_000
+            + uniq()
     ));
     std::fs::create_dir_all(&dir).unwrap();
     (dir.clone(), TempGuard(dir))
@@ -161,4 +168,3 @@ async fn veto_endpoint_freezes_the_gate() {
     assert_eq!(status, StatusCode::OK); // handler okÃ¢â‚¬Â¦
                                         // Ã¢â‚¬Â¦but outcome carries frozen refusal via error field.
 }
-

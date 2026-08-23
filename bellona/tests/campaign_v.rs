@@ -4,6 +4,11 @@
 use bellona::{assemble, BellonaConfig};
 use forge::testkit::conform_fs;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
+static UNIQ_SEQ: AtomicU64 = AtomicU64::new(1);
+fn uniq() -> u64 {
+    UNIQ_SEQ.fetch_add(1, Ordering::Relaxed)
+}
 use std::sync::{Arc, Mutex};
 
 // ---------- hermetic model ----------
@@ -62,7 +67,9 @@ fn temp_ws(tag: &str) -> (PathBuf, TempGuard) {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .subsec_nanos()
+            .subsec_nanos() as u64
+            * 1_000_000
+            + uniq()
     ));
     std::fs::create_dir_all(&dir).unwrap();
     let g = TempGuard(dir.clone());

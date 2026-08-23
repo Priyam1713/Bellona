@@ -4,7 +4,12 @@
 use async_trait::async_trait;
 use bellona::{assemble, BellonaConfig};
 use bellum::{Aerarium, BellumError, ModelClient, ModelReply, ReActStrategy, ToolCall, WarLoop};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+static UNIQ_SEQ: AtomicU64 = AtomicU64::new(1);
+fn uniq() -> u64 {
+    UNIQ_SEQ.fetch_add(1, Ordering::Relaxed)
+}
 
 struct Scripted {
     steps: std::sync::Mutex<VecDeque<ModelReply>>,
@@ -59,7 +64,9 @@ fn temp_ws() -> (std::path::PathBuf, PathBufGuard) {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .subsec_nanos()
+            .subsec_nanos() as u64
+            * 1_000_000
+            + uniq()
     ));
     std::fs::create_dir_all(&dir).unwrap();
     (dir.clone(), PathBufGuard(dir))
@@ -115,8 +122,36 @@ async fn campaign_writes_a_file_and_finishes() {
     assert_eq!(report.answer, "the report reads: we marched");
     assert!(report.steps_used >= 3);
 
-    // The file REALLY exists on disk.
-    let written = std::fs::read_to_string(_ws.join("reports").join("victory.md")).unwrap();
+    // The file REALLY exists on disk. Windows AV/indexers can transiently
+    // lock fresh files; retry briefly so flaky infra doesn't mask logic.
+    let mut written = String::new();
+    let mut last_err = None;
+    for _ in 0..10 {
+        match std::fs::read_to_string(_ws.join("reports").join("victory.md")) {
+            Ok(s) => {
+                written = s;
+                last_err = None;
+                break;
+            }
+            Err(e) => {
+                last_err = Some(e.to_string());
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+        }
+    }
+    if let Some(err) = last_err {
+        let listing: Vec<String> = std::fs::read_dir(&_ws)
+            .map(|rd| {
+                rd.flatten()
+                    .map(|e| e.path().to_string_lossy().into_owned())
+                    .collect()
+            })
+            .unwrap_or_default();
+        panic!(
+            "file never became readable: {err}\nread_path={}\nlisting={listing:?}",
+            _ws.join("reports").join("victory.md").display()
+        );
+    }
     assert_eq!(written, "we marched");
 
     // And the ledger holds decision + settlement rows. In yolo mode writes

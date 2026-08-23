@@ -1,4 +1,10 @@
-//! Campaign XI: the agent that forges its own weapons â€” under inspection.
+//! Campaign XI: the agent that forges its own weapons — under inspection.
+
+use std::sync::atomic::{AtomicU64, Ordering};
+static UNIQ_SEQ: AtomicU64 = AtomicU64::new(1);
+fn uniq() -> u64 {
+    UNIQ_SEQ.fetch_add(1, Ordering::Relaxed)
+}
 
 use bellona::forging::*;
 use officina::{BatteryCase, ForgedTool, ScriptLang};
@@ -66,7 +72,9 @@ async fn promoted_tool_persists_loads_and_revokes() {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .subsec_nanos()
+            .subsec_nanos() as u64
+            * 1_000_000
+            + uniq()
     ));
     std::fs::create_dir_all(&dir).unwrap();
 

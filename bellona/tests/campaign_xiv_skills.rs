@@ -1,8 +1,13 @@
-﻿//! Campaign XIV-6: skills installer â€” clone, parse foreign frontmatter,
+//! Campaign XIV-6: skills installer â€” clone, parse foreign frontmatter,
 //! list, remove.
 
 use bellona::skills_cli;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
+static UNIQ_SEQ: AtomicU64 = AtomicU64::new(1);
+fn uniq() -> u64 {
+    UNIQ_SEQ.fetch_add(1, Ordering::Relaxed)
+}
 use std::process::Command;
 
 fn temp(tag: &str) -> (PathBuf, Guard) {
@@ -12,7 +17,9 @@ fn temp(tag: &str) -> (PathBuf, Guard) {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .subsec_nanos()
+            .subsec_nanos() as u64
+            * 1_000_000
+            + uniq()
     ));
     std::fs::create_dir_all(&dir).unwrap();
     (dir.clone(), Guard(dir))
@@ -34,8 +41,12 @@ fn git(dir: &std::path::Path, args: &[&str]) {
         .env("GIT_COMMITTER_EMAIL", "t@t")
         .output()
         .expect("git");
-    assert!(out.status.success(), "git {:?} failed: {}", args,
-        String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "git {:?} failed: {}",
+        args,
+        String::from_utf8_lossy(&out.stderr)
+    );
 }
 
 #[test]
@@ -60,7 +71,7 @@ fn install_from_local_git_url_round_trip() {
     git(&src, &["add", "-A"]);
     git(&src, &["commit", "-q", "-m", "packs"]);
 
-    let (root, rootg) = temp("root");
+    let (root, _rootg) = temp("root");
 
     let url = format!("file:///{}", src.to_string_lossy().replace('\\', "/"));
     let installed = skills_cli::install_from_git(&url, &root).unwrap();
@@ -68,9 +79,14 @@ fn install_from_local_git_url_round_trip() {
 
     let all = skills_cli::scan(&root);
     assert_eq!(all.len(), 2);
-    assert!(all.iter().any(|s| s.name == "hello-skill" && s.version == "1.2.0"));
-    assert!(all.iter().any(|s| s.name == "minimal" && s.version == "0.0.0"),
-        "missing version tolerated as 0.0.0");
+    assert!(all
+        .iter()
+        .any(|s| s.name == "hello-skill" && s.version == "1.2.0"));
+    assert!(
+        all.iter()
+            .any(|s| s.name == "minimal" && s.version == "0.0.0"),
+        "missing version tolerated as 0.0.0"
+    );
 
     // Remove one; the other survives.
     assert!(skills_cli::remove(&root, "hello-skill").unwrap());
@@ -90,4 +106,3 @@ fn frontmatter_parser_is_tolerant() {
     let garbage = skills_cli::parse_frontmatter("not frontmatter at all");
     assert!(garbage.is_err());
 }
-
