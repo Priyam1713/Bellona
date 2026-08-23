@@ -1,4 +1,4 @@
-[workspace]
+﻿[workspace]
 resolver = "2"
 members = [
     "forge",
@@ -10,6 +10,7 @@ members = [
     "foedus",
     "vigiles",
     "auxilia",
+    "nuntii",
     "bellona",
 ]
 
@@ -42,3 +43,4 @@ auxilia = { path = "auxilia" }
 lto = true
 codegen-units = 1
 strip = true
+

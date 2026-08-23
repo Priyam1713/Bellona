@@ -1,4 +1,4 @@
-//! bellona — the war machine's terminal face.
+//! bellona â€” the war machine's terminal face.
 //!
 //! Usage:
 //!   bellona [--workspace DIR] [--base-url URL] [--api-key KEY] --goal "..."
@@ -25,9 +25,15 @@ fn flag(args: &[String], key: &str) -> bool {
 async fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
+    if args.first().map(|a| a == "colosseum").unwrap_or(false) {
+        let cfg = bellona::BellonaConfig::default();
+        let code = bellona::colosseum::cli(&args[1..], &cfg).await;
+        std::process::exit(code);
+    }
+
     if flag(&args, "--help") || flag(&args, "-h") {
         println!(
-            "bellona — the war machine\n\
+            "bellona â€” the war machine\n\
              \n\
              USAGE:\n  \
                bellona [flags] --goal \"...\"\n\
@@ -91,7 +97,7 @@ async fn main() {
         None => loop_,
     };
 
-    // Surface the event stream on stderr — stdout stays for the answer.
+    // Surface the event stream on stderr â€” stdout stays for the answer.
     let mut rx = assembled.gateway.bus().subscribe();
     let ticker = tokio::spawn(async move {
         while let Ok(ev) = rx.recv().await {
@@ -117,7 +123,7 @@ async fn main() {
                 std::process::exit(0);
             } else {
                 eprintln!(
-                    "bellona: halted by breaker — {}",
+                    "bellona: halted by breaker â€” {}",
                     r.breaker.as_deref().unwrap_or("unknown")
                 );
                 println!("{}", r.answer);

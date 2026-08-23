@@ -43,6 +43,13 @@ pub struct SuiteCase {
     pub verifier: Verifier,
 }
 
+/// A loadable suite file.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SuiteFile {
+    pub name: String,
+    pub cases: Vec<SuiteCase>,
+}
+
 fn default_trials() -> usize {
     3
 }
@@ -118,6 +125,17 @@ impl Gate {
     /// 0 = pass, 1 = reliability failure, 2 = budget breach.
     pub fn exit_code(&self, verdict: GateVerdict) -> i32 {
         match verdict {
+            GateVerdict::Passed => 0,
+            GateVerdict::FailedReliability => 1,
+            GateVerdict::FailedBudget => 2,
+        }
+    }
+}
+
+impl GateVerdict {
+    /// Convenience wrapper mirroring `Gate::exit_code`.
+    pub fn exit_code(self) -> i32 {
+        match self {
             GateVerdict::Passed => 0,
             GateVerdict::FailedReliability => 1,
             GateVerdict::FailedBudget => 2,

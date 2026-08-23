@@ -400,3 +400,5 @@ pub mod anyhow_free {
 pub fn new_agent() -> AgentId {
     AgentId::mint()
 }
+
+pub mod colosseum;

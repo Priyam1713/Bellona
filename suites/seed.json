@@ -1,0 +1,24 @@
+{
+  "name": "seed",
+  "description": "Offline harness-plumbing gate: deterministic echo tasks through the full loop and gate.",
+  "cases": [
+    {
+      "id": "echo-exact",
+      "task": "say hail bellona",
+      "trials": 2,
+      "verifier": { "verifier": "exact_output", "expected": "hail bellona" }
+    },
+    {
+      "id": "echo-contains",
+      "task": "say the forge burns bright",
+      "trials": 2,
+      "verifier": { "verifier": "contains_all", "fragments": ["forge", "bright"] }
+    },
+    {
+      "id": "tool-write",
+      "task": "write reports/seed.md :: victory",
+      "trials": 1,
+      "verifier": { "verifier": "starts_with", "prefix": "wrote" }
+    }
+  ]
+}
