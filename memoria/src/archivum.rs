@@ -1,4 +1,4 @@
-//! Archivum — the durable store. Episodic, semantic, procedural knowledge
+//! Archivum â€” the durable store. Episodic, semantic, procedural knowledge
 //! with a pluggable backend (Law III: local-first default here).
 
 use async_trait::async_trait;
@@ -97,10 +97,14 @@ impl ArchivumStore for InMemoryArchivum {
     }
 }
 
+use std::sync::atomic::{AtomicU64, Ordering};
+static EP_SEQ: AtomicU64 = AtomicU64::new(1);
+
 /// Convenience constructor used by Somnium.
 pub fn new_episode(kind: &str, content: String) -> Episode {
+    let seq = EP_SEQ.fetch_add(1, Ordering::Relaxed);
     Episode {
-        id: format!("ep_{:016x}", now_ms() ^ ((content.len() as u64) << 3)),
+        id: format!("ep_{:012x}{:04x}", now_ms(), seq),
         ts_ms: now_ms(),
         kind: kind.to_string(),
         content,

@@ -1,0 +1,25 @@
+﻿[package]
+name = "bellona"
+description = "The war machine itself: terminal agent driven through the Praetorian Gate."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "bellona"
+path = "src/main.rs"
+
+[dependencies]
+forge = { path = "../forge" }
+praetorium = { path = "../praetorium" }
+bellum = { path = "../bellum" }
+memoria = { path = "../memoria" }
+auxilia = { path = "../auxilia" }
+castra = { path = "../castra" }
+vigiles = { path = "../vigiles" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = "0.1"
+

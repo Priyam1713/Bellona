@@ -1,19 +1,21 @@
-//! # memoria — Tiered memory of the camp.
+//! # memoria â€” Tiered memory of the camp.
 //!
 //! Four tiers per doctrine:
-//! - **nervi** — pinned, always-in-context vitals (goal + minimum proof)
-//! - **tabella** — the wax tablet: decision records for the running task
-//! - **archivum** — durable episodic/semantic/procedural store
-//! - **somnium** — sleep-time consolidation distilling episodes into knowledge
+//! - **nervi** â€” pinned, always-in-context vitals (goal + minimum proof)
+//! - **tabella** â€” the wax tablet: decision records for the running task
+//! - **archivum** â€” durable episodic/semantic/procedural store
+//! - **somnium** â€” sleep-time consolidation distilling episodes into knowledge
 
 pub mod archivum;
 pub mod nervi;
 pub mod somnium;
+pub mod sqlite;
 pub mod tabella;
 
 pub use archivum::{new_episode, ArchivumStore, Episode, InMemoryArchivum};
 pub use nervi::Nervi;
 pub use somnium::{Consolidator, DistilledKnowledge, HeuristicConsolidator, SleepDaemon};
+pub use sqlite::SqliteArchivum;
 pub use tabella::Tabella;
 
 use serde::{Deserialize, Serialize};

@@ -13,3 +13,5 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 async-trait = "0.1"
 tokio = { workspace = true }
+rusqlite = { version = "0.32", features = ["bundled"] }
+

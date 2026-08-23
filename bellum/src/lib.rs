@@ -80,11 +80,19 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
             .get(&call.name)
             .map(|t| t.spec().effect.clone())
             .unwrap_or(EffectKind::Custom("unknown_tool".into()));
-
         let mut req = ActionRequest::new(agent_id.clone(), call.name.clone(), effect)
             .with_intent(intent.to_string())
             .with_params(call.args.clone());
-        req.target_uri = target_uri_from_args(&call.args);
+        // Tools act within the campaign workspace; an unaddressable effect
+        // targets its root.
+        req.target_uri = {
+            let u = target_uri_from_args(&call.args);
+            if u.is_empty() {
+                "file://workspace".to_string()
+            } else {
+                u
+            }
+        };
 
         match self.gateway.submit(req).await? {
             GateOutcome::Executed { outcome, .. } => Ok(outcome),

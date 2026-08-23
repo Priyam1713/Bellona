@@ -9,6 +9,8 @@ members = [
     "officina",
     "foedus",
     "vigiles",
+    "auxilia",
+    "bellona",
 ]
 
 [workspace.package]
@@ -33,6 +35,8 @@ cel-interpreter = "0.10"
 forge = { path = "forge" }
 praetorium = { path = "praetorium" }
 memoria = { path = "memoria" }
+bellum = { path = "bellum" }
+auxilia = { path = "auxilia" }
 
 [profile.release]
 lto = true

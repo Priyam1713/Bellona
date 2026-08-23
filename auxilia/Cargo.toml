@@ -1,0 +1,19 @@
+[package]
+name = "auxilia"
+description = "The auxiliaries: allied troops - model provider clients (OpenAI-compatible, Anthropic) and channel transports."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+bellum = { path = "../bellum" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+async-trait = "0.1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { workspace = true }
+
+[dev-dependencies]
+httpmock = "0.7"
