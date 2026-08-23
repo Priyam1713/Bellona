@@ -306,6 +306,8 @@ dependencies = [
  "forge",
  "memoria",
  "praetorium",
+ "regex",
+ "reqwest",
  "serde",
  "serde_json",
  "tokio",

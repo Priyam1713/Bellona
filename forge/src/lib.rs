@@ -1,9 +1,9 @@
-//! # forge — The Bellona Kernel
+//! # forge â€” The Bellona Kernel
 //!
 //! Seven primitives, nothing more (Law I: lean core, iron edges):
 //! `loop`, `context`, `tool`, `session`, `policy`, `channel`, `memory`.
 //!
-//! Strategy intelligence lives in plugins (`bellum`, …), never here.
+//! Strategy intelligence lives in plugins (`bellum`, â€¦), never here.
 
 pub mod context;
 pub mod error;
@@ -11,6 +11,8 @@ pub mod event;
 pub mod id;
 pub mod primitives;
 pub mod session;
+pub mod simple_tool;
+pub mod testkit;
 pub mod tool;
 
 pub use context::{Block, ContextWindow, LineageRef};
@@ -19,6 +21,7 @@ pub use event::{BusEvent, EventBus};
 pub use id::{ActionId, AgentId, Id, RunId, SessionId};
 pub use primitives::{ActionRequest, Decision, EffectKind, Outcome, PolicyAttrs, ResourceInfo};
 pub use session::{Session, SessionStore};
+pub use simple_tool::{need_str, opt_str, Handler, HandlerReturn, SimpleTool};
 pub use tool::{Tool, ToolContext, ToolRegistry, ToolSpec};
 
 /// Kernel plugin-API contract version (Law II).

@@ -1,4 +1,4 @@
-﻿//! The War Loop Ã¢â‚¬â€ boring, reliable, and always through the gate.
+//! The War Loop Ã¢â‚¬â€ boring, reliable, and always through the gate.
 
 pub mod budget;
 pub mod model;
@@ -227,4 +227,3 @@ fn target_uri_from_args(args: &serde_json::Value) -> String {
     }
     String::new()
 }
-

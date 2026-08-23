@@ -1,5 +1,7 @@
-//! The war machine, as a library â€” so tests can drive real tools through a
+//! The war machine, as a library Ã¢â‚¬â€ so tests can drive real tools through a
 //! real gate before `main.rs` ever touches a terminal.
+
+pub mod arsenal;
 
 use auxilia::OpenAiCompatClient;
 use castra::{CampCommand, EnvScrubPolicy, ProcessDriver, SandboxDriver};
@@ -347,7 +349,30 @@ pub fn assemble(cfg: &BellonaConfig) -> anyhow_free::AssemblyResult<Assembled> {
         workspace: workspace.clone(),
     }));
     reg.register(Arc::new(ShellTool));
-    for name in ["read_file", "list_files", "write_file", "run_shell"] {
+    for t in crate::arsenal::git_read_tools() {
+        reg.register(t);
+    }
+    for t in crate::arsenal::git_write_tools() {
+        reg.register(t);
+    }
+    for t in crate::arsenal::search_tools(None) {
+        reg.register(t);
+    }
+    reg.register(crate::arsenal::web_fetch_tool(reqwest::Client::new()));
+    for name in [
+        "read_file",
+        "list_files",
+        "write_file",
+        "run_shell",
+        "git_status",
+        "git_log",
+        "git_diff",
+        "git_commit",
+        "git_branch",
+        "search_files",
+        "read_document",
+        "web_fetch",
+    ] {
         reg.set_exposed(name, true)?;
     }
     let registry = Arc::new(reg);
