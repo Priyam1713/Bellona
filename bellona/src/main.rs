@@ -1,4 +1,4 @@
-//! bellona ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the war machine's terminal face.
+//! bellona ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â the war machine's terminal face.
 //!
 //! Usage:
 //!   bellona [--workspace DIR] [--base-url URL] [--api-key KEY] --goal "..."
@@ -21,6 +21,8 @@ fn flag(args: &[String], key: &str) -> bool {
     args.iter().any(|a| a == key)
 }
 
+mod channels;
+
 async fn serve(args: &[String]) {
     let bind = args
         .iter()
@@ -29,9 +31,20 @@ async fn serve(args: &[String]) {
         .cloned()
         .unwrap_or_else(|| "127.0.0.1:3001".into());
     let cfg_dir = std::env::current_dir().unwrap_or_default();
+    // XIV-0: honor the operator's model flags â€” serve() previously ignored
+    // them and silently launched the default provider.
     let wrcfg = bellona::BellonaConfig {
-        workspace: cfg_dir.clone(),
-        ..Default::default()
+        workspace: PathBuf::from(
+            arg_of(args, "--workspace").unwrap_or_else(|| cfg_dir.to_string_lossy().into()),
+        ),
+        base_url: arg_of(args, "--base-url").unwrap_or_else(|| "http://localhost:11434/v1".into()),
+        api_key: arg_of(args, "--api-key"),
+        model: arg_of(args, "--model").unwrap_or_else(|| "local-model".into()),
+        yolo: flag(args, "--yolo"),
+        allow_shell: flag(args, "--allow-shell"),
+        max_steps: arg_of(args, "--max-steps")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(24),
     };
     let assembled = match bellona::assemble(&wrcfg) {
         Ok(a) => a,
@@ -41,12 +54,14 @@ async fn serve(args: &[String]) {
         }
     };
     let model = bellona::model_client(&wrcfg);
+    let model_name = wrcfg.model.clone();
     let app = bellona::warroom::router(bellona::warroom::WarRoom {
+        runs: Default::default(),
         assembled,
         cfg: wrcfg,
         model,
     });
-    eprintln!("bellona: war room open at http://{bind}");
+    eprintln!("bellona: war room open at http://{bind} (model: {model_name})");
     let listener = tokio::net::TcpListener::bind(&bind).await.expect("bind");
     axum::serve(listener, app).await.expect("serve");
 }
@@ -55,6 +70,38 @@ async fn serve(args: &[String]) {
 async fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
+    if args.first().map(|a| a == "mcp").unwrap_or(false) {
+        let cfg = parse_channel_cfg(&args[1..]);
+        let assembled = match bellona::assemble(&cfg) {
+            Ok(a) => a,
+            Err(e) => {
+                eprintln!("bellona mcp: {e}");
+                std::process::exit(2);
+            }
+        };
+        let code = bellona::mcp::serve_stdio(std::sync::Arc::new(assembled)).await;
+        std::process::exit(code);
+    }
+    if args.first().map(|a| a == "telegram").unwrap_or(false) {
+        let token =
+            arg_of(&args[1..], "--token").or_else(|| std::env::var("TELEGRAM_BOT_TOKEN").ok());
+        let Some(token) = token else {
+            eprintln!("bellona telegram: --token or TELEGRAM_BOT_TOKEN required");
+            std::process::exit(2);
+        };
+        let code = channels::run_telegram(parse_channel_cfg(&args[1..]), token).await;
+        std::process::exit(code);
+    }
+    if args.first().map(|a| a == "discord").unwrap_or(false) {
+        let token =
+            arg_of(&args[1..], "--token").or_else(|| std::env::var("DISCORD_BOT_TOKEN").ok());
+        let Some(token) = token else {
+            eprintln!("bellona discord: --token or DISCORD_BOT_TOKEN required");
+            std::process::exit(2);
+        };
+        let code = channels::run_discord(parse_channel_cfg(&args[1..]), token).await;
+        std::process::exit(code);
+    }
     if args.first().map(|a| a == "serve").unwrap_or(false) {
         serve(&args[1..]).await;
         return;
@@ -85,7 +132,7 @@ async fn main() {
 
     if flag(&args, "--help") || flag(&args, "-h") {
         println!(
-            "bellona ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the war machine\n\
+            "bellona ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â the war machine\n\
              \n\
              USAGE:\n  \
                bellona [flags] --goal \"...\"\n\
@@ -149,7 +196,7 @@ async fn main() {
         None => loop_,
     };
 
-    // Surface the event stream on stderr ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â stdout stays for the answer.
+    // Surface the event stream on stderr ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â stdout stays for the answer.
     let mut rx = assembled.gateway.bus().subscribe();
     let ticker = tokio::spawn(async move {
         while let Ok(ev) = rx.recv().await {
@@ -175,7 +222,7 @@ async fn main() {
                 std::process::exit(0);
             } else {
                 eprintln!(
-                    "bellona: halted by breaker ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â {}",
+                    "bellona: halted by breaker ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â {}",
                     r.breaker.as_deref().unwrap_or("unknown")
                 );
                 println!("{}", r.answer);
@@ -186,5 +233,19 @@ async fn main() {
             eprintln!("bellona: campaign failed: {e}");
             std::process::exit(2);
         }
+    }
+}
+
+fn parse_channel_cfg(args: &[String]) -> bellona::BellonaConfig {
+    bellona::BellonaConfig {
+        workspace: PathBuf::from(arg_of(args, "--workspace").unwrap_or_else(|| ".".into())),
+        base_url: arg_of(args, "--base-url").unwrap_or_else(|| "http://localhost:11434/v1".into()),
+        api_key: arg_of(args, "--api-key"),
+        model: arg_of(args, "--model").unwrap_or_else(|| "local-model".into()),
+        yolo: flag(args, "--yolo"),
+        allow_shell: flag(args, "--allow-shell"),
+        max_steps: arg_of(args, "--max-steps")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(24),
     }
 }

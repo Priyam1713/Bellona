@@ -1,4 +1,4 @@
-//! Campaign VII: the War Room speaks the same law over HTTP.
+﻿//! Campaign VII: the War Room speaks the same law over HTTP.
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -38,6 +38,7 @@ fn make_app(yolo: bool) -> axum::Router {
     let assembled = assemble(&cfg).unwrap();
     let model: Arc<dyn bellum::ModelClient> = Arc::new(bellona::tests_support::NullModel);
     bellona::warroom::router(bellona::warroom::WarRoom {
+        runs: Default::default(),
         assembled,
         cfg,
         model,
@@ -157,6 +158,7 @@ async fn veto_endpoint_freezes_the_gate() {
         }),
     )
     .await;
-    assert_eq!(status, StatusCode::OK); // handler okâ€¦
-                                        // â€¦but outcome carries frozen refusal via error field.
+    assert_eq!(status, StatusCode::OK); // handler okÃ¢â‚¬Â¦
+                                        // Ã¢â‚¬Â¦but outcome carries frozen refusal via error field.
 }
+

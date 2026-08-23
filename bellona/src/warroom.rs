@@ -1,4 +1,4 @@
-//! Campaign VII â€” the War Room: eyes on every battle, hands on every gate.
+//! Campaign VII Ã¢â‚¬â€ the War Room: eyes on every battle, hands on every gate.
 //!
 //! `bellona serve` exposes:
 //! - the Praetorian Gate over HTTP (matching @bellona-works/sdk exactly)
@@ -7,7 +7,9 @@
 //! - an embedded single-file console (no node build step, Law I)
 
 use axum::extract::State;
+use axum::http::StatusCode;
 use axum::response::sse::{Event as SseEvent, KeepAlive, Sse};
+use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use bellum::{Aerarium, CascadeRouter, ReActStrategy, WarLoop};
@@ -18,6 +20,8 @@ use std::convert::Infallible;
 use std::sync::Arc;
 
 pub struct WarRoom {
+    /// Campaign launch history (XIV-0).
+    pub runs: Arc<std::sync::Mutex<Vec<serde_json::Value>>>,
     pub assembled: crate::Assembled,
     pub cfg: crate::BellonaConfig,
     pub model: Arc<dyn bellum::ModelClient>,
@@ -141,9 +145,8 @@ async fn ledger(State(st): State<St>) -> Json<serde_json::Value> {
     }))
 }
 
-async fn sessions(State(_st): State<St>) -> Json<serde_json::Value> {
-    // Sessions live in memory for v1; durable store lands with X.
-    Json(json!({ "note": "sessions via /v1/runs history in M-X" }))
+async fn sessions(State(st): State<St>) -> Json<serde_json::Value> {
+    Json(json!({ "runs": st.runs.lock().unwrap().clone() }))
 }
 
 async fn events(
@@ -153,12 +156,15 @@ async fn events(
     let stream = futures_util::stream::unfold(rx, |mut rx| async move {
         loop {
             match rx.recv().await {
-                Ok(ev) => {
-                    let payload = from_bus(&ev)
-                        .map(|a| serde_json::to_string(&a).unwrap_or_default())
-                        .unwrap_or_else(|| format!("{ev:?}"));
-                    return Some((Ok(SseEvent::default().data(payload)), rx));
-                }
+                Ok(ev) => match from_bus(&ev) {
+                    Some(agui) => {
+                        let payload = serde_json::to_string(&agui).unwrap_or_default();
+                        return Some((Ok(SseEvent::default().data(payload)), rx));
+                    }
+                    // Internal-only events are skipped, never debug-dumped
+                    // to surfaces.
+                    None => continue,
+                },
                 Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => return None,
             }
@@ -169,6 +175,7 @@ async fn events(
 
 async fn run_campaign(State(st): State<St>, Json(b): Json<RunBody>) -> Json<serde_json::Value> {
     let aerarium = Aerarium::new(b.max_steps.unwrap_or(st.cfg.max_steps), 500);
+    let max_steps_used = aerarium.max_steps;
     let loop_ = WarLoop::new(
         st.assembled.gateway.clone(),
         st.assembled.registry.clone(),
@@ -177,6 +184,14 @@ async fn run_campaign(State(st): State<St>, Json(b): Json<RunBody>) -> Json<serd
     )
     .with_auto_approver("war-room-operator");
 
+    st.runs.lock().unwrap().push(json!({
+        "goal": b.goal,
+        "started_at_ms": std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0),
+        "max_steps": max_steps_used,
+    }));
     tokio::spawn(async move {
         let _ = loop_
             .run(
@@ -261,6 +276,27 @@ async fn a2a_tasks(State(st): State<St>, body: String) -> Json<serde_json::Value
     }
 }
 
+// ---------- Campaign XIV-2: MCP over HTTP ----------
+
+async fn mcp_http(State(st): State<St>, body: String) -> axum::response::Response {
+    let req: serde_json::Value = match serde_json::from_str(&body) {
+        Ok(v) => v,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "jsonrpc": "2.0", "id": null,
+                    "error": { "code": -32700, "message": "parse error" } })),
+            )
+                .into_response();
+        }
+    };
+    match crate::mcp::handle_request(&st.assembled, &req).await {
+        Some(resp) => (StatusCode::OK, Json(resp)).into_response(),
+        // Notifications produce no body per JSON-RPC.
+        None => StatusCode::ACCEPTED.into_response(),
+    }
+}
+
 async fn index() -> axum::response::Html<&'static str> {
     axum::response::Html(crate::warroom_html())
 }
@@ -282,5 +318,6 @@ pub fn router(war_room: WarRoom) -> Router {
         .route("/v1/runs", post(run_campaign))
         .route("/a2a/card", get(a2a_card))
         .route("/a2a/tasks", post(a2a_tasks))
+        .route("/mcp", post(mcp_http))
         .with_state(st)
 }

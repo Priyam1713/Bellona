@@ -1,4 +1,4 @@
-//! The War Loop ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â boring, reliable, and always through the gate.
+//! The War Loop ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â boring, reliable, and always through the gate.
 
 pub mod budget;
 pub mod centurio;
@@ -76,7 +76,7 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
         intent: &str,
         worker_role: Option<&str>,
     ) -> Result<Outcome, BellumError> {
-        // Effect classification comes from the tool's own declared spec —
+        // Effect classification comes from the tool's own declared spec Ã¢â‚¬â€
         // never from the model's claim.
         let effect = self
             .registry
@@ -90,7 +90,7 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
         // Tools act within the campaign workspace; an unaddressable effect
         // targets its root.
         req.target_uri = {
-            let u = target_uri_from_args(&call.args);
+            let u = target_uri_hint(&call.args);
             if u.is_empty() {
                 "file://workspace".to_string()
             } else {
@@ -101,7 +101,7 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
         match self.gateway.submit(req).await? {
             GateOutcome::Executed { outcome, .. } => Ok(outcome),
             GateOutcome::Denied { rule_id, reason } => {
-                // Denial is an observation, not an exception ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the agent
+                // Denial is an observation, not an exception ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â the agent
                 // learns and may adapt within policy.
                 Ok(Outcome::Failed {
                     error: format!("DENIED by rule '{rule_id}': {reason}"),
@@ -236,7 +236,7 @@ impl<R: TargetResolver, E: EffectExecutor> WarLoop<R, E> {
 
 /// Derive a target URI hint from common argument shapes. Tools declare real
 /// targets in their specs; this only feeds policy attributes.
-fn target_uri_from_args(args: &serde_json::Value) -> String {
+pub fn target_uri_hint(args: &serde_json::Value) -> String {
     if let Some(p) = args.get("path").and_then(|v| v.as_str()) {
         return format!("file://workspace/{p}");
     }
