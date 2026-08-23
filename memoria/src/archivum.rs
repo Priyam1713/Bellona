@@ -1,4 +1,4 @@
-//! Archivum â€” the durable store. Episodic, semantic, procedural knowledge
+//! Archivum Ã¢â‚¬â€ the durable store. Episodic, semantic, procedural knowledge
 //! with a pluggable backend (Law III: local-first default here).
 
 use async_trait::async_trait;
@@ -29,9 +29,9 @@ pub trait ArchivumStore: Send + Sync {
 ///
 /// Deterministic, dependency-free, and honest about being simple. Vector or
 /// graph backends slot in behind [`ArchivumStore`] without touching callers.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct InMemoryArchivum {
-    episodes: std::sync::RwLock<Vec<Episode>>,
+    episodes: std::sync::Arc<std::sync::RwLock<Vec<Episode>>>,
 }
 
 fn now_ms() -> u64 {

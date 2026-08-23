@@ -23,6 +23,7 @@ auxilia = { path = "../auxilia" }
 castra = { path = "../castra" }
 vigiles = { path = "../vigiles" }
 foedus = { path = "../foedus" }
+officina = { path = "../officina" }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -31,6 +32,7 @@ futures-util = "0.3"
 async-trait = "0.1"
 regex = "1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
 
 
 

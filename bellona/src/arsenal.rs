@@ -1,4 +1,4 @@
-//! Campaign V â€” the expanded arsenal: git operations, document search,
+//! Campaign V Ã¢â‚¬â€ the expanded arsenal: git operations, document search,
 //! HTTP-level web reading. Every tool is a SimpleTool (~15 lines each) and
 //! must pass the forge-testkit battery.
 //!
@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 // ---------- shared plumbing ----------
 
-async fn run_camp(
+pub(crate) async fn run_camp(
     ws: &Path,
     program: &str,
     args: Vec<String>,
@@ -39,7 +39,7 @@ async fn run_camp(
 
 /// Platform-correct `git <argv>` inside the workspace.
 ///
-/// Direct exec â€” NO shell layer. Shell quoting across cmd/POSIX was proven
+/// Direct exec Ã¢â‚¬â€ NO shell layer. Shell quoting across cmd/POSIX was proven
 /// lossy in tests (`-c user.name=...` arrived with literal quotes); git is
 /// a real executable everywhere we care about, so argv goes to it raw.
 async fn run_git(ws: &Path, argv: Vec<String>) -> ForgeResult<serde_json::Value> {
@@ -229,7 +229,7 @@ async fn search_impl(
     let mut hits: Vec<serde_json::Value> = Vec::new();
     collect_hits(ws, ws, matcher.as_ref(), &mut hits, CAP)?;
 
-    // V3.3: searches become memories â€” top hits land in the Archivum.
+    // V3.3: searches become memories Ã¢â‚¬â€ top hits land in the Archivum.
     if let Some(s) = &store {
         for h in hits.iter().take(10) {
             let content = format!(
